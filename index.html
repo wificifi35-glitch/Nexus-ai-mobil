@@ -3,18 +3,638 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Nexus-AI Test</title>
+<title>Nexus-AI</title>
+
+<style>
+*{
+    box-sizing:border-box;
+    margin:0;
+    padding:0;
+}
+
+body{
+    background:#080b12;
+    color:white;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    height:100vh;
+    overflow:hidden;
+}
+
+.app{
+    height:100vh;
+    display:flex;
+    flex-direction:column;
+}
+
+.header{
+    height:68px;
+    flex-shrink:0;
+    display:flex;
+    align-items:center;
+    padding:0 15px;
+    background:#0d1119;
+    border-bottom:1px solid #202633;
+}
+
+.logo{
+    display:flex;
+    align-items:center;
+    gap:10px;
+}
+
+.logoIcon{
+    width:40px;
+    height:40px;
+    border-radius:13px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-weight:900;
+    font-size:20px;
+    background:linear-gradient(135deg,#695cff,#00c8ff);
+}
+
+.logoText{
+    font-size:19px;
+    font-weight:700;
+}
+
+.status{
+    margin-left:auto;
+    display:flex;
+    align-items:center;
+    gap:7px;
+    color:#8e98aa;
+    font-size:12px;
+}
+
+.dot{
+    width:8px;
+    height:8px;
+    border-radius:50%;
+    background:#f0a500;
+    box-shadow:0 0 9px #f0a500;
+}
+
+.chat{
+    flex:1;
+    overflow-y:auto;
+    padding:20px 14px 105px;
+}
+
+.welcome{
+    text-align:center;
+    margin-top:18vh;
+}
+
+.welcomeIcon{
+    width:72px;
+    height:72px;
+    margin:auto;
+    border-radius:23px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:32px;
+    font-weight:900;
+    background:linear-gradient(135deg,#695cff,#00c8ff);
+}
+
+.welcome h1{
+    margin-top:18px;
+    font-size:28px;
+}
+
+.welcome p{
+    margin-top:8px;
+    color:#858fa2;
+    font-size:14px;
+}
+
+.message{
+    display:flex;
+    margin-bottom:16px;
+}
+
+.message.user{
+    justify-content:flex-end;
+}
+
+.bubble{
+    max-width:85%;
+    padding:12px 15px;
+    border-radius:17px;
+    font-size:15px;
+    line-height:1.5;
+    white-space:pre-wrap;
+}
+
+.user .bubble{
+    background:linear-gradient(135deg,#6256ee,#4840c4);
+    border-bottom-right-radius:5px;
+}
+
+.ai .bubble{
+    background:#151a24;
+    border:1px solid #252c3a;
+    border-bottom-left-radius:5px;
+}
+
+.inputArea{
+    position:fixed;
+    bottom:0;
+    left:0;
+    width:100%;
+    padding:10px 12px 13px;
+    background:linear-gradient(transparent,#080b12 25%);
+}
+
+.inputBox{
+    display:flex;
+    align-items:flex-end;
+    gap:8px;
+    padding:7px;
+    background:#10151e;
+    border:1px solid #29303e;
+    border-radius:20px;
+}
+
+textarea{
+    flex:1;
+    min-height:42px;
+    max-height:110px;
+    resize:none;
+    border:none;
+    outline:none;
+    background:transparent;
+    color:white;
+    padding:10px 7px;
+    font-size:15px;
+}
+
+textarea::placeholder{
+    color:#687386;
+}
+
+.send{
+    width:43px;
+    height:43px;
+    border:none;
+    border-radius:14px;
+    color:white;
+    font-size:18px;
+    background:linear-gradient(135deg,#695cff,#00b9ed);
+}
+
+.send:disabled{
+    opacity:.4;
+}
+
+.loading{
+    display:flex;
+    gap:5px;
+}
+
+.loading span{
+    width:6px;
+    height:6px;
+    border-radius:50%;
+    background:#8993a6;
+    animation:blink 1.2s infinite;
+}
+
+.loading span:nth-child(2){
+    animation-delay:.2s;
+}
+
+.loading span:nth-child(3){
+    animation-delay:.4s;
+}
+
+@keyframes blink{
+    0%,80%,100%{opacity:.25}
+    40%{opacity:1}
+}
+</style>
 </head>
 
-<body style="background:#080b12;color:white;font-family:sans-serif;padding:25px">
+<body>
 
-<h1>Nexus-AI</h1>
+<div class="app">
 
-<p id="result">Test ediliyor...</p>
+<header class="header">
 
-<script>
-document.getElementById("result").textContent =
-    "HTTPS: " + location.protocol;
+    <div class="logo">
+        <div class="logoIcon">N</div>
+        <div class="logoText">Nexus-AI</div>
+    </div>
+
+    <div class="status">
+        <div class="dot" id="statusDot"></div>
+        <span id="statusText">Model yükleniyor</span>
+    </div>
+
+</header>
+
+<main class="chat" id="chat">
+
+    <div class="welcome" id="welcome">
+
+        <div class="welcomeIcon">N</div>
+
+        <h1>Nexus-AI</h1>
+
+        <p id="welcomeText">
+            Gerçek AI modeli hazırlanıyor...
+        </p>
+
+    </div>
+
+</main>
+
+<div class="inputArea">
+
+    <div class="inputBox">
+
+        <textarea
+            id="messageInput"
+            placeholder="Nexus'a bir şey sor..."
+            rows="1"
+            disabled>
+        </textarea>
+
+        <button
+            class="send"
+            id="sendButton"
+            disabled>
+            ➤
+        </button>
+
+    </div>
+
+</div>
+
+</div>
+
+
+<script type="module">
+
+import {
+    pipeline
+} from "https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.2.0";
+
+
+const MODEL =
+    "onnx-community/Qwen2.5-0.5B-Instruct";
+
+
+const chat =
+    document.getElementById("chat");
+
+const input =
+    document.getElementById("messageInput");
+
+const sendButton =
+    document.getElementById("sendButton");
+
+const welcome =
+    document.getElementById("welcome");
+
+const welcomeText =
+    document.getElementById("welcomeText");
+
+const statusText =
+    document.getElementById("statusText");
+
+const statusDot =
+    document.getElementById("statusDot");
+
+
+let generator=null;
+
+let conversation=[
+    {
+        role:"system",
+        content:
+        "Sen Nexus-AI'sın. Türkçe konuş. Yardımcı, doğal ve anlaşılır cevaplar ver."
+    }
+];
+
+
+function setStatus(text,ready=false){
+
+    statusText.textContent=text;
+
+    if(ready){
+
+        statusDot.style.background="#32d583";
+
+        statusDot.style.boxShadow=
+            "0 0 9px #32d583";
+
+    }else{
+
+        statusDot.style.background="#f0a500";
+
+        statusDot.style.boxShadow=
+            "0 0 9px #f0a500";
+    }
+}
+
+
+function addMessage(text,type){
+
+    welcome.style.display="none";
+
+    const message=
+        document.createElement("div");
+
+    message.className=
+        "message "+type;
+
+    const bubble=
+        document.createElement("div");
+
+    bubble.className="bubble";
+
+    bubble.textContent=text;
+
+    message.appendChild(bubble);
+
+    chat.appendChild(message);
+
+    chat.scrollTop=
+        chat.scrollHeight;
+}
+
+
+function showLoading(){
+
+    const message=
+        document.createElement("div");
+
+    message.className="message ai";
+
+    message.id="aiLoading";
+
+    message.innerHTML=`
+        <div class="bubble">
+            <div class="loading">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        </div>
+    `;
+
+    chat.appendChild(message);
+
+    chat.scrollTop=
+        chat.scrollHeight;
+}
+
+
+function removeLoading(){
+
+    const element=
+        document.getElementById(
+            "aiLoading"
+        );
+
+    if(element){
+        element.remove();
+    }
+}
+
+
+async function startAI(){
+
+    try{
+
+        setStatus(
+            "Model yükleniyor"
+        );
+
+        welcomeText.textContent=
+            "AI modeli telefona indiriliyor. İlk açılışta beklemen gerekebilir.";
+
+
+        const device=
+            ("gpu" in navigator)
+            ? "webgpu"
+            : "wasm";
+
+
+        generator=
+            await pipeline(
+                "text-generation",
+                MODEL,
+                {
+                    dtype:"q4f16",
+                    device:device
+                }
+            );
+
+
+        setStatus(
+            device==="webgpu"
+            ? "Yerel AI • GPU"
+            : "Yerel AI • CPU",
+            true
+        );
+
+
+        welcomeText.textContent=
+            "Hazırım. Bana bir şey sor.";
+
+        input.disabled=false;
+
+        sendButton.disabled=false;
+
+        input.focus();
+
+
+    }catch(error){
+
+        console.error(
+            "NEXUS MODEL HATASI:",
+            error
+        );
+
+        setStatus(
+            "Model yüklenemedi"
+        );
+
+        welcomeText.textContent=
+            "Model yüklenemedi. Konsolu kontrol et.";
+
+    }
+
+}
+
+
+async function askNexus(text){
+
+    conversation.push({
+        role:"user",
+        content:text
+    });
+
+
+    const result=
+        await generator(
+            conversation,
+            {
+                max_new_tokens:128,
+                temperature:.7,
+                do_sample:true
+            }
+        );
+
+
+    const generated=
+        result?.[0]?.generated_text;
+
+
+    let answer="";
+
+
+    if(Array.isArray(generated)){
+
+        const last=
+            generated[
+                generated.length-1
+            ];
+
+        answer=
+            last?.content || "";
+
+    }
+
+
+    if(!answer){
+
+        answer=
+            "Cevap üretilemedi.";
+    }
+
+
+    conversation.push({
+        role:"assistant",
+        content:answer
+    });
+
+
+    return answer;
+}
+
+
+async function sendMessage(){
+
+    const text=
+        input.value.trim();
+
+    if(
+        !text ||
+        !generator
+    ){
+        return;
+    }
+
+
+    addMessage(
+        text,
+        "user"
+    );
+
+
+    input.value="";
+
+    input.style.height="auto";
+
+    sendButton.disabled=true;
+
+    showLoading();
+
+
+    try{
+
+        const answer=
+            await askNexus(text);
+
+        removeLoading();
+
+        addMessage(
+            answer,
+            "ai"
+        );
+
+    }catch(error){
+
+        console.error(
+            "NEXUS CEVAP HATASI:",
+            error
+        );
+
+        removeLoading();
+
+        addMessage(
+            "AI cevap üretirken hata oluştu.",
+            "ai"
+        );
+
+    }
+
+
+    sendButton.disabled=false;
+
+    input.focus();
+}
+
+
+sendButton.addEventListener(
+    "click",
+    sendMessage
+);
+
+
+input.addEventListener(
+    "keydown",
+    event=>{
+
+        if(
+            event.key==="Enter" &&
+            !event.shiftKey
+        ){
+
+            event.preventDefault();
+
+            sendMessage();
+
+        }
+
+    }
+);
+
+
+input.addEventListener(
+    "input",
+    ()=>{
+
+        input.style.height="auto";
+
+        input.style.height=
+            Math.min(
+                input.scrollHeight,
+                110
+            )+"px";
+
+    }
+);
+
+
+startAI();
+
 </script>
 
 </body>
