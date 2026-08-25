@@ -1,13 +1,12 @@
 <!DOCTYPE html>
 <html lang="tr">
-
 <head>
 
 <meta charset="UTF-8">
 
 <meta
     name="viewport"
-    content="width=device-width, initial-scale=1.0"
+    content="width=device-width,initial-scale=1.0"
 >
 
 <title>Nexus-AI</title>
@@ -22,9 +21,10 @@
 
 body{
     background:#080b12;
-    color:#fff;
+    color:white;
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
     height:100vh;
+    overflow:hidden;
 }
 
 .app{
@@ -35,6 +35,7 @@ body{
 
 .header{
     height:70px;
+    flex-shrink:0;
     display:flex;
     align-items:center;
     padding:0 16px;
@@ -79,6 +80,7 @@ body{
     height:8px;
     border-radius:50%;
     background:#f0a500;
+    box-shadow:0 0 9px #f0a500;
 }
 
 .chat{
@@ -112,7 +114,7 @@ body{
 
 .welcome p{
     margin:10px auto 0;
-    max-width:320px;
+    max-width:330px;
     color:#858fa2;
     font-size:14px;
     line-height:1.5;
@@ -201,7 +203,6 @@ textarea::placeholder{
 
 </head>
 
-
 <body>
 
 <div class="app">
@@ -255,7 +256,7 @@ textarea::placeholder{
         </h1>
 
         <p id="welcomeText">
-            Yerel yapay zekâ hazırlanıyor...
+            Nexus başlatılıyor...
         </p>
 
     </div>
@@ -295,9 +296,17 @@ import {
 } from "https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.2.0";
 
 
+/* ================================
+   NEXUS AYARLARI
+================================ */
+
 const MODEL =
     "onnx-community/Qwen2.5-0.5B-Instruct";
 
+
+/* ================================
+   ELEMENTLER
+================================ */
 
 const chat =
     document.getElementById("chat");
@@ -321,8 +330,18 @@ const dot =
     document.getElementById("dot");
 
 
+/* ================================
+   AI
+================================ */
+
 let generator = null;
 
+let aiReady = false;
+
+
+/* ================================
+   KONUŞMA
+================================ */
 
 const messages = [
 
@@ -330,28 +349,43 @@ const messages = [
         role:"system",
 
         content:
-        "Sen Nexus-AI'sın. Türkçe konuş. Yardımcı, doğal ve anlaşılır cevaplar ver."
+        "Sen Nexus-AI'sın. Türkçe konuş. Yardımcı, doğal, anlaşılır ve doğru cevaplar ver."
     }
 
 ];
 
 
-function setStatus(text,ready=false){
+/* ================================
+   DURUM YÖNETİMİ
+================================ */
 
-    status.textContent = text;
+function setStatus(
+    title,
+    description,
+    ready=false
+){
+
+    status.textContent =
+        title;
+
+    welcomeText.textContent =
+        description;
+
 
     if(ready){
 
-        dot.style.background="#32d583";
+        dot.style.background =
+            "#32d583";
 
-        dot.style.boxShadow=
+        dot.style.boxShadow =
             "0 0 10px #32d583";
 
     }else{
 
-        dot.style.background="#f0a500";
+        dot.style.background =
+            "#f0a500";
 
-        dot.style.boxShadow=
+        dot.style.boxShadow =
             "0 0 10px #f0a500";
 
     }
@@ -359,53 +393,95 @@ function setStatus(text,ready=false){
 }
 
 
-function addMessage(text,type){
+/* ================================
+   MESAJ
+================================ */
 
-    welcome.style.display="none";
+function addMessage(
+    text,
+    type
+){
+
+    welcome.style.display =
+        "none";
+
 
     const message =
-        document.createElement("div");
+        document.createElement(
+            "div"
+        );
 
-    message.className=
+    message.className =
         "message " + type;
 
+
     const bubble =
-        document.createElement("div");
+        document.createElement(
+            "div"
+        );
 
-    bubble.className="bubble";
+    bubble.className =
+        "bubble";
 
-    bubble.textContent=text;
+    bubble.textContent =
+        text;
 
-    message.appendChild(bubble);
 
-    chat.appendChild(message);
+    message.appendChild(
+        bubble
+    );
 
-    chat.scrollTop=
+    chat.appendChild(
+        message
+    );
+
+
+    chat.scrollTop =
         chat.scrollHeight;
 
 }
 
 
+/* ================================
+   MODELİ BAŞLAT
+================================ */
+
 async function startNexus(){
 
     try{
 
+        /*
+         * AŞAMA 1
+         */
+
+        setStatus(
+            "Hazırlanıyor...",
+            "Nexus-AI başlatılıyor..."
+        );
+
+
+        /*
+         * WebGPU kontrolü
+         */
+
         if(!navigator.gpu){
 
             throw new Error(
-                "Bu tarayıcıda WebGPU bulunamadı."
+                "WebGPU desteklenmiyor."
             );
 
         }
 
 
+        /*
+         * AŞAMA 2
+         * MODEL İNDİRME / ÖNBELLEKTEN YÜKLEME
+         */
+
         setStatus(
-            "GPU hazırlanıyor..."
+            "Model hazırlanıyor...",
+            "Nexus AI modeli kontrol ediliyor..."
         );
-
-
-        welcomeText.textContent=
-            "Nexus'un yerel AI modeli hazırlanıyor. İlk açılışta büyük bir indirme yapılacak.";
 
 
         generator =
@@ -424,45 +500,119 @@ async function startNexus(){
                     progress_callback:
                         (progress)=>{
 
+
+                            /*
+                             * MODEL İNDİRİLİYOR
+                             */
+
                             if(
                                 progress &&
                                 progress.status ===
                                 "progress"
                             ){
 
-                                const percent =
-                                    Math.round(
+                                const value =
+                                    Number(
                                         progress.progress || 0
                                     );
 
+
+                                const percent =
+                                    Math.round(
+                                        value
+                                    );
+
+
                                 setStatus(
-                                    "Model %"+percent
+
+                                    "Model %"
+                                    + percent,
+
+                                    "AI modeli indiriliyor: %"
+                                    + percent
+
                                 );
 
-                                welcomeText.textContent=
-                                    "AI modeli indiriliyor: %"+
-                                    percent;
+                            }
+
+
+                            /*
+                             * MODEL DOSYASI İNDİRİLDİ
+                             */
+
+                            if(
+                                progress &&
+                                (
+                                    progress.status ===
+                                    "done"
+                                )
+                            ){
+
+                                setStatus(
+
+                                    "Model indirildi",
+
+                                    "Model indirildi. Nexus-AI başlatılıyor..."
+
+                                );
+
                             }
 
                         }
 
-                }
-
             );
 
 
+        /*
+         * AŞAMA 3
+         * MODEL OBJE OLARAK HAZIR
+         */
+
         setStatus(
-            "Yerel AI • GPU",
-            true
+
+            "Nexus başlatılıyor...",
+
+            "AI motoru başlatılıyor. Lütfen bekleyin..."
+
         );
 
 
-        welcomeText.textContent=
-            "Hazırım. Bana bir şey sor.";
+        /*
+         * KISA BİR BAŞLATMA PAYI
+         */
 
-        input.disabled=false;
+        await new Promise(
+            resolve =>
+                setTimeout(
+                    resolve,
+                    800
+                )
+        );
 
-        send.disabled=false;
+
+        /*
+         * AI ARTIK HAZIR
+         */
+
+        aiReady = true;
+
+
+        setStatus(
+
+            "Yerel AI • GPU",
+
+            "Hazırım. Bana bir şey sor.",
+
+            true
+
+        );
+
+
+        input.disabled =
+            false;
+
+        send.disabled =
+            false;
 
         input.focus();
 
@@ -470,25 +620,35 @@ async function startNexus(){
     }catch(error){
 
         console.error(
-            "NEXUS MODEL HATASI",
+            "NEXUS MODEL HATASI:",
             error
         );
 
 
+        aiReady =
+            false;
+
+
         setStatus(
-            "Model yüklenemedi"
+
+            "Başlatılamadı",
+
+            "Nexus-AI başlatılırken bir hata oluştu. Konsolu kontrol et."
+
         );
-
-
-        welcomeText.textContent=
-            "Model başlatılamadı. Konsolu açıp gerçek hata kaydını kontrol et.";
 
     }
 
 }
 
 
-async function askNexus(text){
+/* ================================
+   AI CEVABI
+================================ */
+
+async function askNexus(
+    text
+){
 
     messages.push({
 
@@ -505,27 +665,40 @@ async function askNexus(text){
             messages,
 
             {
+
                 max_new_tokens:128,
+
                 do_sample:true,
+
                 temperature:0.7
+
             }
 
         );
 
 
     const generated =
-        output[0].generated_text;
+        output?.[0]?.generated_text;
 
 
-    let answer = "";
+    let answer =
+        "";
 
 
-    if(Array.isArray(generated)){
+    if(
+        Array.isArray(
+            generated
+        )
+    ){
 
-        answer =
+        const last =
             generated[
                 generated.length - 1
-            ].content || "";
+            ];
+
+
+        answer =
+            last?.content || "";
 
     }
 
@@ -552,6 +725,10 @@ async function askNexus(text){
 }
 
 
+/* ================================
+   MESAJ GÖNDER
+================================ */
+
 async function sendMessage(){
 
     const text =
@@ -560,7 +737,7 @@ async function sendMessage(){
 
     if(
         !text ||
-        !generator
+        !aiReady
     ){
 
         return;
@@ -574,15 +751,23 @@ async function sendMessage(){
     );
 
 
-    input.value="";
+    input.value =
+        "";
 
-    send.disabled=true;
+    input.style.height =
+        "auto";
+
+
+    send.disabled =
+        true;
 
 
     try{
 
         const answer =
-            await askNexus(text);
+            await askNexus(
+                text
+            );
 
 
         addMessage(
@@ -594,25 +779,33 @@ async function sendMessage(){
     }catch(error){
 
         console.error(
-            "NEXUS CEVAP HATASI",
+            "NEXUS CEVAP HATASI:",
             error
         );
 
 
         addMessage(
-            "Cevap oluşturulurken hata oluştu.",
+
+            "Nexus cevap üretirken bir hata oluştu.",
+
             "ai"
+
         );
 
     }
 
 
-    send.disabled=false;
+    send.disabled =
+        false;
 
     input.focus();
 
 }
 
+
+/* ================================
+   BUTON
+================================ */
 
 send.addEventListener(
     "click",
@@ -620,13 +813,25 @@ send.addEventListener(
 );
 
 
+/* ================================
+   ENTER
+================================ */
+
 input.addEventListener(
+
     "keydown",
+
     event=>{
 
         if(
-            event.key==="Enter" &&
+
+            event.key ===
+            "Enter"
+
+            &&
+
             !event.shiftKey
+
         ){
 
             event.preventDefault();
@@ -636,8 +841,37 @@ input.addEventListener(
         }
 
     }
+
 );
 
+
+/* ================================
+   TEXTAREA
+================================ */
+
+input.addEventListener(
+
+    "input",
+
+    ()=>{
+
+        input.style.height =
+            "auto";
+
+        input.style.height =
+            Math.min(
+                input.scrollHeight,
+                120
+            ) + "px";
+
+    }
+
+);
+
+
+/* ================================
+   NEXUS BAŞLAT
+================================ */
 
 startNexus();
 
