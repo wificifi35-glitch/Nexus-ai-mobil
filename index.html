@@ -8,9 +8,9 @@
       content="#080b12">
 <title>Nexus-AI</title>
 <style>
-/* ==============================
+/* =========================================
    TEMEL
-============================== */
+========================================= */
 *{
     box-sizing:border-box;
     margin:0;
@@ -41,9 +41,9 @@ textarea{
     display:flex;
     flex-direction:column;
 }
-/* ==============================
+/* =========================================
    HEADER
-============================== */
+========================================= */
 .header{
     height:68px;
     min-height:68px;
@@ -90,15 +90,14 @@ textarea{
 .statusDot{
     width:8px;
     height:8px;
-    flex-shrink:0;
     border-radius:50%;
     background:#f0a500;
     box-shadow:
         0 0 9px #f0a500;
 }
-/* ==============================
+/* =========================================
    CHAT
-============================== */
+========================================= */
 .chat{
     flex:1;
     min-height:0;
@@ -129,25 +128,22 @@ textarea{
             #695cff,
             #00c8ff
         );
-    box-shadow:
-        0 0 35px
-        rgba(90,100,255,.18);
 }
 .welcome h1{
     margin-top:18px;
     font-size:28px;
 }
 .welcome p{
-    max-width:320px;
+    max-width:330px;
     margin:
         9px auto 0;
     color:#858fa2;
     font-size:14px;
     line-height:1.5;
 }
-/* ==============================
+/* =========================================
    MESAJLAR
-============================== */
+========================================= */
 .message{
     display:flex;
     width:100%;
@@ -157,7 +153,7 @@ textarea{
     justify-content:flex-end;
 }
 .bubble{
-    max-width:86%;
+    max-width:88%;
     padding:
         12px
         15px;
@@ -182,9 +178,9 @@ textarea{
         1px solid #252c3a;
     border-bottom-left-radius:5px;
 }
-/* ==============================
-   ALT GİRİŞ
-============================== */
+/* =========================================
+   INPUT
+========================================= */
 .inputArea{
     position:fixed;
     left:0;
@@ -219,8 +215,8 @@ textarea{
     min-height:42px;
     max-height:120px;
     resize:none;
-    outline:none;
     border:none;
+    outline:none;
     background:transparent;
     color:#ffffff;
     padding:
@@ -250,9 +246,9 @@ textarea::placeholder{
 .sendButton:disabled{
     opacity:.4;
 }
-/* ==============================
+/* =========================================
    KONSOL BUTONU
-============================== */
+========================================= */
 .consoleToggle{
     position:fixed;
     right:13px;
@@ -271,15 +267,15 @@ textarea::placeholder{
         0 6px 20px
         rgba(0,0,0,.35);
 }
-/* ==============================
+/* =========================================
    KONSOL
-============================== */
+========================================= */
 .consolePanel{
     position:fixed;
-    left:8px;
-    right:8px;
-    bottom:8px;
-    height:55dvh;
+    left:7px;
+    right:7px;
+    bottom:7px;
+    height:60dvh;
     z-index:1000;
     display:none;
     flex-direction:column;
@@ -367,9 +363,9 @@ textarea::placeholder{
 .consoleWarn{
     color:#f0c674;
 }
-/* ==============================
-   YÜKLEME
-============================== */
+/* =========================================
+   YÜKLEME ANİMASYONU
+========================================= */
 .loading{
     display:flex;
     align-items:center;
@@ -399,27 +395,22 @@ textarea::placeholder{
         opacity:1;
     }
 }
-/* ==============================
+/* =========================================
    MOBİL
-============================== */
+========================================= */
 @media(max-width:600px){
     .bubble{
-        max-width:90%;
+        max-width:91%;
     }
     .consolePanel{
-        left:6px;
-        right:6px;
-        bottom:6px;
-        height:60dvh;
+        height:62dvh;
     }
 }
 </style>
 </head>
 <body>
 <div class="app">
-<!-- ==========================
-     HEADER
-=========================== -->
+<!-- HEADER -->
 <header class="header">
     <div class="logo">
         <div class="logoIcon">
@@ -439,9 +430,7 @@ textarea::placeholder{
         </span>
     </div>
 </header>
-<!-- ==========================
-     CHAT
-=========================== -->
+<!-- CHAT -->
 <main
     class="chat"
     id="chat">
@@ -459,9 +448,7 @@ textarea::placeholder{
         </p>
     </div>
 </main>
-<!-- ==========================
-     INPUT
-=========================== -->
+<!-- INPUT -->
 <div class="inputArea">
     <div class="inputBox">
         <textarea
@@ -479,17 +466,13 @@ textarea::placeholder{
     </div>
 </div>
 </div>
-<!-- ==========================
-     KONSOL BUTONU
-=========================== -->
+<!-- KONSOL BUTONU -->
 <button
     class="consoleToggle"
     id="consoleToggle">
     ⚙ Konsol
 </button>
-<!-- ==========================
-     KONSOL PANELİ
-=========================== -->
+<!-- KONSOL PANELİ -->
 <section
     class="consolePanel"
     id="consolePanel">
@@ -520,9 +503,22 @@ textarea::placeholder{
    TRANSFORMERS.JS
 ========================================= */
 import {
-    pipeline
-} from
+    pipeline,
+    env
+}
+from
 "https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.2.0";
+/* =========================================
+   TRANSFORMERS AYARLARI
+========================================= */
+/*
+   Model dosyaları mümkün olduğunca
+   tarayıcı önbelleğinde tutulur.
+*/
+env.allowLocalModels =
+    false;
+env.useBrowserCache =
+    true;
 /* =========================================
    MODEL
 ========================================= */
@@ -580,16 +576,16 @@ const closeConsole =
         "closeConsole"
     );
 /* =========================================
-   AI DURUMU
+   DURUM
 ========================================= */
 let generator =
     null;
 let aiReady =
     false;
 /* =========================================
-   KONUŞMA
+   KONUŞMA HAFIZASI
 ========================================= */
-const messages = [
+let messages = [
     {
         role:"system",
         content:
@@ -597,9 +593,11 @@ const messages = [
     }
 ];
 /* =========================================
-   HATA ÇÖZÜMLEME
+   HATA METNİ
 ========================================= */
-function errorText(error){
+function getErrorMessage(
+    error
+){
     if(!error){
         return "Bilinmeyen hata";
     }
@@ -627,9 +625,11 @@ function errorText(error){
     return String(error);
 }
 /* =========================================
-   GÜVENLİ KONSOL
+   HTML GÜVENLİĞİ
 ========================================= */
-function escapeHTML(value){
+function escapeHTML(
+    value
+){
     return String(value)
         .replaceAll(
             "&",
@@ -696,7 +696,9 @@ function log(
             ${time}
         </span>
         <span class="${className}">
-            ${escapeHTML(message)}
+            ${escapeHTML(
+                message
+            )}
         </span>
     `;
     consoleBody.appendChild(
@@ -710,7 +712,7 @@ function log(
     );
 }
 /* =========================================
-   KONSOL BUTONLARI
+   KONSOL KONTROLLERİ
 ========================================= */
 consoleToggle.addEventListener(
     "click",
@@ -745,7 +747,7 @@ window.addEventListener(
     "error",
     event => {
         log(
-            "JavaScript: " +
+            "JavaScript hatası: " +
             event.message,
             "error"
         );
@@ -755,8 +757,8 @@ window.addEventListener(
     "unhandledrejection",
     event => {
         log(
-            "Promise: " +
-            errorText(
+            "Promise hatası: " +
+            getErrorMessage(
                 event.reason
             ),
             "error"
@@ -764,7 +766,7 @@ window.addEventListener(
     }
 );
 /* =========================================
-   DURUM
+   DURUM DEĞİŞTİR
 ========================================= */
 function setStatus(
     title,
@@ -821,7 +823,7 @@ function addMessage(
         chat.scrollHeight;
 }
 /* =========================================
-   YÜKLENİYOR MESAJI
+   LOADING
 ========================================= */
 function showLoading(){
     const message =
@@ -857,6 +859,24 @@ function removeLoading(){
     }
 }
 /* =========================================
+   SAYFA YENİLEME UYARISI
+========================================= */
+/*
+   Kullanıcı yanlışlıkla sayfayı yenilemeye
+   çalışırsa Chrome'un kendi uyarısını
+   göstermeyi deneriz.
+*/
+window.addEventListener(
+    "beforeunload",
+    event => {
+        if(!aiReady){
+            event.preventDefault();
+            event.returnValue =
+                "";
+        }
+    }
+);
+/* =========================================
    NEXUS BAŞLAT
 ========================================= */
 async function startNexus(){
@@ -872,7 +892,7 @@ async function startNexus(){
     );
     try{
         /* -------------------------------
-           1 — WEBGPU
+           WEBGPU
         -------------------------------- */
         setStatus(
             "Başlatılıyor...",
@@ -893,24 +913,29 @@ async function startNexus(){
             "success"
         );
         /* -------------------------------
-           2 — TARAYICI
+           ORTAM
         -------------------------------- */
         log(
-            "Chrome/Web ortamı kontrol edildi."
+            "Protokol: " +
+            location.protocol
         );
         log(
             "Model: " +
             MODEL
         );
+        log(
+            "Tarayıcı önbelleği aktif.",
+            "success"
+        );
         /* -------------------------------
-           3 — PIPELINE
+           MODEL
         -------------------------------- */
         setStatus(
             "Model hazırlanıyor...",
-            "Nexus AI modeli yükleniyor..."
+            "Nexus AI modeli kontrol ediliyor..."
         );
         log(
-            "Transformers.js yükleniyor..."
+            "Transformers.js pipeline başlatılıyor..."
         );
         const started =
             performance.now();
@@ -925,27 +950,25 @@ async function startNexus(){
                         "webgpu",
                     progress_callback:
                         progress => {
-                            if(!progress){
-                                return;
-                            }
                             try{
-                                const status =
+                                if(!progress){
+                                    return;
+                                }
+                                const state =
                                     progress.status;
                                 /*
-                                 * MODEL İNDİRME
+                                 * İNDİRME
                                  */
                                 if(
-                                    status ===
+                                    state ===
                                     "progress"
                                 ){
-                                    const value =
-                                        Number(
-                                            progress.progress ||
-                                            0
-                                        );
                                     const percent =
                                         Math.round(
-                                            value
+                                            Number(
+                                                progress.progress ||
+                                                0
+                                            )
                                         );
                                     setStatus(
                                         "Model %" +
@@ -953,16 +976,29 @@ async function startNexus(){
                                         "AI modeli hazırlanıyor: %" +
                                         percent
                                     );
-                                    log(
-                                        "Model ilerleme: %" +
-                                        percent
-                                    );
+                                    /*
+                                     * Her yüzdeyi
+                                     * konsola spamlamıyoruz.
+                                     */
+                                    if(
+                                        percent === 0 ||
+                                        percent === 25 ||
+                                        percent === 50 ||
+                                        percent === 75 ||
+                                        percent === 90 ||
+                                        percent === 100
+                                    ){
+                                        log(
+                                            "Model ilerleme: %" +
+                                            percent
+                                        );
+                                    }
                                 }
                                 /*
-                                 * DOSYA TAMAMLANDI
+                                 * DOSYA BİTTİ
                                  */
                                 if(
-                                    status ===
+                                    state ===
                                     "done"
                                 ){
                                     log(
@@ -970,22 +1006,10 @@ async function startNexus(){
                                         "success"
                                     );
                                 }
-                                /*
-                                 * HAZIR
-                                 */
-                                if(
-                                    status ===
-                                    "ready"
-                                ){
-                                    log(
-                                        "Model hazır sinyali alındı.",
-                                        "success"
-                                    );
-                                }
                             }catch(error){
                                 log(
                                     "Progress hatası: " +
-                                    errorText(
+                                    getErrorMessage(
                                         error
                                     ),
                                     "error"
@@ -1002,42 +1026,52 @@ async function startNexus(){
                 ) / 1000
             );
         log(
-            "pipeline tamamlandı.",
+            "Pipeline tamamlandı.",
             "success"
         );
         log(
-            "Pipeline süresi: " +
+            "Yükleme süresi: " +
             seconds +
             " saniye.",
             "success"
         );
         /* -------------------------------
-           4 — MODEL TESTİ
+           MODEL İNDİRİLDİ
         -------------------------------- */
         setStatus(
             "Model yüklendi",
-            "Model indirildi. Nexus-AI başlatılıyor..."
+            "Model indirildi. Şimdi Nexus-AI başlatılıyor..."
         );
         log(
-            "Model nesnesi başarıyla oluşturuldu.",
+            "Model nesnesi hazır.",
             "success"
         );
+        /* -------------------------------
+           MOTOR BAŞLAT
+        -------------------------------- */
         setStatus(
             "Nexus başlatılıyor...",
-            "AI motoru test ediliyor..."
+            "AI motoru başlatılıyor..."
         );
         log(
-            "AI motoru gerçek cevap testi başlıyor..."
+            "AI motoru başlatılıyor..."
         );
+        /*
+         * GERÇEK TEST
+         *
+         * Bu test modelin gerçekten
+         * çalışabildiğini doğrular.
+         */
         const test =
             await generator(
                 "Merhaba",
                 {
-                    max_new_tokens:8
+                    max_new_tokens:
+                        8
                 }
             );
         log(
-            "AI motoru testinden cevap alındı.",
+            "AI motoru test cevabı alındı.",
             "success"
         );
         log(
@@ -1047,7 +1081,7 @@ async function startNexus(){
             "success"
         );
         /* -------------------------------
-           5 — HAZIR
+           HAZIR
         -------------------------------- */
         aiReady =
             true;
@@ -1069,10 +1103,6 @@ async function startNexus(){
             "success"
         );
         log(
-            "Kullanıcı mesajı bekleniyor.",
-            "success"
-        );
-        log(
             "================================",
             "success"
         );
@@ -1089,7 +1119,7 @@ async function startNexus(){
             "error"
         );
         log(
-            errorText(
+            getErrorMessage(
                 error
             ),
             "error"
@@ -1109,7 +1139,7 @@ async function startNexus(){
         );
         setStatus(
             "Başlatılamadı",
-            "Konsolu açıp kırmızı hata mesajını kontrol et."
+            "Nexus-AI başlatılamadı. Konsolu açıp hatayı kontrol et."
         );
     }
 }
@@ -1130,7 +1160,7 @@ async function askNexus(
             text
     });
     log(
-        "AI cevap üretmeye başladı..."
+        "AI cevap üretiyor..."
     );
     const output =
         await generator(
@@ -1144,10 +1174,6 @@ async function askNexus(
                     true
             }
         );
-    log(
-        "AI cevap üretimi tamamlandı.",
-        "success"
-    );
     const generated =
         output?.[0]?.generated_text;
     let answer =
@@ -1175,6 +1201,10 @@ async function askNexus(
         content:
             answer
     });
+    log(
+        "AI cevap üretimi tamamlandı.",
+        "success"
+    );
     return answer;
 }
 /* =========================================
@@ -1214,7 +1244,7 @@ async function sendMessage(){
         removeLoading();
         log(
             "CEVAP HATASI: " +
-            errorText(
+            getErrorMessage(
                 error
             ),
             "error"
