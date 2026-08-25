@@ -1,17 +1,23 @@
 <!DOCTYPE html>
 <html lang="tr">
+
 <head>
 
 <meta charset="UTF-8">
 
 <meta
     name="viewport"
-    content="width=device-width,initial-scale=1.0"
+    content="width=device-width, initial-scale=1.0"
 >
 
 <title>Nexus-AI</title>
 
+
 <style>
+
+/* =========================================
+   TEMEL
+========================================= */
 
 *{
     box-sizing:border-box;
@@ -21,8 +27,12 @@
 
 body{
     background:#080b12;
-    color:white;
-    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    color:#ffffff;
+    font-family:
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        sans-serif;
     height:100vh;
     overflow:hidden;
 }
@@ -33,14 +43,24 @@ body{
     flex-direction:column;
 }
 
+
+/* =========================================
+   HEADER
+========================================= */
+
 .header{
     height:70px;
     flex-shrink:0;
+
     display:flex;
     align-items:center;
+
     padding:0 16px;
+
     background:#0d1119;
-    border-bottom:1px solid #202633;
+
+    border-bottom:
+        1px solid #202633;
 }
 
 .logo{
@@ -52,13 +72,22 @@ body{
 .logoIcon{
     width:42px;
     height:42px;
+
     border-radius:14px;
+
     display:flex;
     align-items:center;
     justify-content:center;
+
     font-size:21px;
     font-weight:900;
-    background:linear-gradient(135deg,#695cff,#00c8ff);
+
+    background:
+        linear-gradient(
+            135deg,
+            #695cff,
+            #00c8ff
+        );
 }
 
 .logoText{
@@ -68,60 +97,105 @@ body{
 
 .status{
     margin-left:auto;
+
     display:flex;
     align-items:center;
+
     gap:8px;
+
     color:#8993a5;
+
     font-size:13px;
 }
 
 .dot{
     width:8px;
     height:8px;
+
     border-radius:50%;
+
     background:#f0a500;
-    box-shadow:0 0 9px #f0a500;
+
+    box-shadow:
+        0 0 9px #f0a500;
 }
+
+
+/* =========================================
+   CHAT
+========================================= */
 
 .chat{
     flex:1;
+
     overflow-y:auto;
-    padding:20px 14px 110px;
+
+    padding:
+        20px
+        14px
+        120px;
 }
 
 .welcome{
     text-align:center;
+
     margin-top:18vh;
 }
 
 .welcomeIcon{
     width:76px;
     height:76px;
+
     margin:auto;
+
     border-radius:24px;
+
     display:flex;
     align-items:center;
     justify-content:center;
+
     font-size:34px;
     font-weight:900;
-    background:linear-gradient(135deg,#695cff,#00c8ff);
+
+    background:
+        linear-gradient(
+            135deg,
+            #695cff,
+            #00c8ff
+        );
+
+    box-shadow:
+        0 0 35px
+        rgba(80,100,255,.20);
 }
 
 .welcome h1{
     margin-top:18px;
+
     font-size:29px;
 }
 
 .welcome p{
-    margin:10px auto 0;
+    margin:
+        10px auto 0;
+
     max-width:330px;
+
     color:#858fa2;
+
     font-size:14px;
+
     line-height:1.5;
 }
 
+
+/* =========================================
+   MESAJLAR
+========================================= */
+
 .message{
     display:flex;
+
     margin-bottom:16px;
 }
 
@@ -131,53 +205,103 @@ body{
 
 .bubble{
     max-width:86%;
-    padding:12px 15px;
+
+    padding:
+        12px
+        15px;
+
     border-radius:17px;
+
     font-size:15px;
+
     line-height:1.5;
+
     white-space:pre-wrap;
+
+    word-break:break-word;
 }
 
 .user .bubble{
-    background:linear-gradient(135deg,#6256ee,#4840c4);
+    background:
+        linear-gradient(
+            135deg,
+            #6256ee,
+            #4840c4
+        );
+
     border-bottom-right-radius:5px;
 }
 
 .ai .bubble{
     background:#151a24;
-    border:1px solid #252c3a;
+
+    border:
+        1px solid #252c3a;
+
     border-bottom-left-radius:5px;
 }
 
+
+/* =========================================
+   INPUT
+========================================= */
+
 .inputArea{
     position:fixed;
+
     left:0;
     bottom:0;
+
     width:100%;
-    padding:10px 14px 14px;
-    background:linear-gradient(transparent,#080b12 30%);
+
+    padding:
+        10px
+        14px
+        14px;
+
+    background:
+        linear-gradient(
+            transparent,
+            #080b12 30%
+        );
 }
 
 .inputBox{
     display:flex;
+
     align-items:flex-end;
+
     gap:8px;
+
     padding:7px;
+
     background:#10151e;
-    border:1px solid #29303e;
+
+    border:
+        1px solid #29303e;
+
     border-radius:20px;
 }
 
 textarea{
     flex:1;
+
     min-height:42px;
     max-height:120px;
+
     resize:none;
+
     border:none;
     outline:none;
+
     background:transparent;
+
     color:white;
-    padding:10px 7px;
+
+    padding:
+        10px
+        7px;
+
     font-size:15px;
 }
 
@@ -188,24 +312,202 @@ textarea::placeholder{
 .send{
     width:44px;
     height:44px;
+
+    flex-shrink:0;
+
     border:none;
+
     border-radius:14px;
-    background:linear-gradient(135deg,#695cff,#00b9ed);
+
+    background:
+        linear-gradient(
+            135deg,
+            #695cff,
+            #00b9ed
+        );
+
     color:white;
+
     font-size:19px;
+
+    cursor:pointer;
 }
 
 .send:disabled{
     opacity:.4;
 }
 
+
+/* =========================================
+   MOBİL KONSOL BUTONU
+========================================= */
+
+#consoleButton{
+    position:fixed;
+
+    right:14px;
+    bottom:82px;
+
+    z-index:9999;
+
+    border:none;
+
+    border-radius:14px;
+
+    padding:
+        10px
+        13px;
+
+    background:#171d28;
+
+    color:#cbd3e1;
+
+    font-size:12px;
+
+    box-shadow:
+        0 5px 20px
+        rgba(0,0,0,.35);
+}
+
+
+/* =========================================
+   KONSOL PANELİ
+========================================= */
+
+#consolePanel{
+    position:fixed;
+
+    left:10px;
+    right:10px;
+
+    bottom:10px;
+
+    height:55vh;
+
+    z-index:10000;
+
+    background:#0b0f16;
+
+    border:
+        1px solid #303847;
+
+    border-radius:18px;
+
+    display:none;
+
+    flex-direction:column;
+
+    overflow:hidden;
+
+    box-shadow:
+        0 15px 50px
+        rgba(0,0,0,.65);
+}
+
+#consolePanel.open{
+    display:flex;
+}
+
+.consoleHeader{
+    min-height:52px;
+
+    display:flex;
+
+    align-items:center;
+
+    justify-content:space-between;
+
+    padding:
+        0
+        12px;
+
+    background:#111620;
+
+    border-bottom:
+        1px solid #252c38;
+}
+
+.consoleHeader strong{
+    font-size:14px;
+}
+
+.consoleActions{
+    display:flex;
+
+    gap:6px;
+}
+
+.consoleActions button{
+    border:none;
+
+    border-radius:9px;
+
+    padding:
+        7px
+        9px;
+
+    background:#202735;
+
+    color:#cbd3e1;
+
+    font-size:11px;
+}
+
+.nexusConsole{
+    flex:1;
+
+    overflow-y:auto;
+
+    padding:10px;
+
+    font-family:
+        monospace;
+
+    font-size:11px;
+
+    line-height:1.5;
+}
+
+.consoleLine{
+    padding:5px 0;
+
+    border-bottom:
+        1px solid
+        rgba(255,255,255,.04);
+
+    word-break:break-word;
+}
+
+.consoleTime{
+    color:#657086;
+
+    margin-right:7px;
+}
+
+.consoleLine.error{
+    color:#ff7777;
+}
+
+.consoleLine.success{
+    color:#55d995;
+}
+
+.consoleLine.info{
+    color:#c3cada;
+}
+
 </style>
 
 </head>
 
+
 <body>
 
+
 <div class="app">
+
+
+<!-- HEADER -->
 
 <header class="header">
 
@@ -221,14 +523,15 @@ textarea::placeholder{
 
     </div>
 
+
     <div class="status">
 
         <div
             class="dot"
-            id="dot">
+            id="statusDot">
         </div>
 
-        <span id="status">
+        <span id="statusText">
             Başlatılıyor...
         </span>
 
@@ -236,6 +539,8 @@ textarea::placeholder{
 
 </header>
 
+
+<!-- CHAT -->
 
 <main
     class="chat"
@@ -256,7 +561,7 @@ textarea::placeholder{
         </h1>
 
         <p id="welcomeText">
-            Nexus başlatılıyor...
+            Nexus-AI başlatılıyor...
         </p>
 
     </div>
@@ -264,21 +569,24 @@ textarea::placeholder{
 </main>
 
 
+<!-- INPUT -->
+
 <div class="inputArea">
 
     <div class="inputBox">
 
         <textarea
-            id="input"
+            id="messageInput"
             placeholder="Nexus'a bir şey sor..."
-            disabled
-        ></textarea>
+            rows="1"
+            disabled>
+        </textarea>
+
 
         <button
             class="send"
-            id="send"
-            disabled
-        >
+            id="sendButton"
+            disabled>
             ➤
         </button>
 
@@ -286,62 +594,83 @@ textarea::placeholder{
 
 </div>
 
+
 </div>
 
 
 <script type="module">
 
+
+/* =========================================
+   TRANSFORMERS.JS
+========================================= */
+
 import {
     pipeline
-} from "https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.2.0";
+} from
+"https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.2.0";
 
 
-/* ================================
-   NEXUS AYARLARI
-================================ */
+/* =========================================
+   MODEL
+========================================= */
 
 const MODEL =
-    "onnx-community/Qwen2.5-0.5B-Instruct";
+"onnx-community/Qwen2.5-0.5B-Instruct";
 
 
-/* ================================
+/* =========================================
    ELEMENTLER
-================================ */
+========================================= */
 
 const chat =
-    document.getElementById("chat");
+document.getElementById("chat");
 
 const input =
-    document.getElementById("input");
+document.getElementById(
+    "messageInput"
+);
 
-const send =
-    document.getElementById("send");
+const sendButton =
+document.getElementById(
+    "sendButton"
+);
 
 const welcome =
-    document.getElementById("welcome");
+document.getElementById(
+    "welcome"
+);
 
 const welcomeText =
-    document.getElementById("welcomeText");
+document.getElementById(
+    "welcomeText"
+);
 
-const status =
-    document.getElementById("status");
+const statusText =
+document.getElementById(
+    "statusText"
+);
 
-const dot =
-    document.getElementById("dot");
+const statusDot =
+document.getElementById(
+    "statusDot"
+);
 
 
-/* ================================
+/* =========================================
    AI
-================================ */
+========================================= */
 
-let generator = null;
+let generator =
+null;
 
-let aiReady = false;
+let aiReady =
+false;
 
 
-/* ================================
-   KONUŞMA
-================================ */
+/* =========================================
+   KONUŞMA HAFIZASI
+========================================= */
 
 const messages = [
 
@@ -355,9 +684,329 @@ const messages = [
 ];
 
 
-/* ================================
-   DURUM YÖNETİMİ
-================================ */
+/* =========================================
+   HATA METNİ
+========================================= */
+
+function stringifyError(error){
+
+    if(!error){
+
+        return "Bilinmeyen hata";
+
+    }
+
+
+    if(
+        typeof error ===
+        "string"
+    ){
+
+        return error;
+
+    }
+
+
+    if(error.message){
+
+        return error.message;
+
+    }
+
+
+    try{
+
+        const json =
+            JSON.stringify(
+                error
+            );
+
+        if(json !== "{}"){
+
+            return json;
+
+        }
+
+    }catch{}
+
+
+    return String(error);
+
+}
+
+
+/* =========================================
+   HTML GÜVENLİĞİ
+========================================= */
+
+function escapeHTML(text){
+
+    return String(text)
+
+        .replaceAll(
+            "&",
+            "&amp;"
+        )
+
+        .replaceAll(
+            "<",
+            "&lt;"
+        )
+
+        .replaceAll(
+            ">",
+            "&gt;"
+        )
+
+        .replaceAll(
+            '"',
+            "&quot;"
+        )
+
+        .replaceAll(
+            "'",
+            "&#039;"
+        );
+
+}
+
+
+/* =========================================
+   MOBİL KONSOL OLUŞTUR
+========================================= */
+
+function createConsole(){
+
+    const panel =
+        document.createElement(
+            "div"
+        );
+
+    panel.id =
+        "consolePanel";
+
+
+    panel.innerHTML = `
+
+        <div class="consoleHeader">
+
+            <strong>
+                Nexus Console
+            </strong>
+
+            <div class="consoleActions">
+
+                <button
+                    id="clearConsole">
+                    Temizle
+                </button>
+
+                <button
+                    id="closeConsole">
+                    Kapat
+                </button>
+
+            </div>
+
+        </div>
+
+
+        <div
+            id="nexusConsole"
+            class="nexusConsole">
+        </div>
+
+    `;
+
+
+    document.body.appendChild(
+        panel
+    );
+
+
+    const button =
+        document.createElement(
+            "button"
+        );
+
+
+    button.id =
+        "consoleButton";
+
+
+    button.textContent =
+        "⚙ Konsol";
+
+
+    document.body.appendChild(
+        button
+    );
+
+
+    button.addEventListener(
+        "click",
+        () => {
+
+            panel.classList.toggle(
+                "open"
+            );
+
+        }
+    );
+
+
+    document
+        .getElementById(
+            "closeConsole"
+        )
+        .addEventListener(
+            "click",
+            () => {
+
+                panel.classList.remove(
+                    "open"
+                );
+
+            }
+        );
+
+
+    document
+        .getElementById(
+            "clearConsole"
+        )
+        .addEventListener(
+            "click",
+            () => {
+
+                document
+                    .getElementById(
+                        "nexusConsole"
+                    )
+                    .innerHTML = "";
+
+                debug(
+                    "Konsol temizlendi."
+                );
+
+            }
+        );
+
+}
+
+
+/* =========================================
+   DEBUG
+========================================= */
+
+function debug(
+    message,
+    type="info"
+){
+
+    const time =
+        new Date()
+        .toLocaleTimeString();
+
+
+    const consoleBox =
+        document.getElementById(
+            "nexusConsole"
+        );
+
+
+    if(consoleBox){
+
+        const line =
+            document.createElement(
+                "div"
+            );
+
+
+        line.className =
+            "consoleLine " +
+            type;
+
+
+        line.innerHTML = `
+
+            <span
+                class="consoleTime">
+                ${time}
+            </span>
+
+            <span>
+                ${escapeHTML(
+                    message
+                )}
+            </span>
+
+        `;
+
+
+        consoleBox.appendChild(
+            line
+        );
+
+
+        consoleBox.scrollTop =
+            consoleBox.scrollHeight;
+
+    }
+
+
+    console.log(
+        "[NEXUS]",
+        message
+    );
+
+}
+
+
+/* =========================================
+   GLOBAL HATA YAKALAMA
+========================================= */
+
+window.addEventListener(
+    "error",
+    event => {
+
+        debug(
+            "JAVASCRIPT HATASI: " +
+            event.message,
+            "error"
+        );
+
+    }
+);
+
+
+window.addEventListener(
+    "unhandledrejection",
+    event => {
+
+        debug(
+            "PROMISE HATASI: " +
+            stringifyError(
+                event.reason
+            ),
+            "error"
+        );
+
+    }
+);
+
+
+/* =========================================
+   KONSOLU BAŞLAT
+========================================= */
+
+createConsole();
+
+
+/* =========================================
+   DURUM
+========================================= */
 
 function setStatus(
     title,
@@ -365,7 +1014,7 @@ function setStatus(
     ready=false
 ){
 
-    status.textContent =
+    statusText.textContent =
         title;
 
     welcomeText.textContent =
@@ -374,18 +1023,18 @@ function setStatus(
 
     if(ready){
 
-        dot.style.background =
+        statusDot.style.background =
             "#32d583";
 
-        dot.style.boxShadow =
+        statusDot.style.boxShadow =
             "0 0 10px #32d583";
 
     }else{
 
-        dot.style.background =
+        statusDot.style.background =
             "#f0a500";
 
-        dot.style.boxShadow =
+        statusDot.style.boxShadow =
             "0 0 10px #f0a500";
 
     }
@@ -393,9 +1042,9 @@ function setStatus(
 }
 
 
-/* ================================
-   MESAJ
-================================ */
+/* =========================================
+   MESAJ EKLE
+========================================= */
 
 function addMessage(
     text,
@@ -411,8 +1060,10 @@ function addMessage(
             "div"
         );
 
+
     message.className =
-        "message " + type;
+        "message " +
+        type;
 
 
     const bubble =
@@ -420,8 +1071,10 @@ function addMessage(
             "div"
         );
 
+
     bubble.className =
         "bubble";
+
 
     bubble.textContent =
         text;
@@ -430,6 +1083,7 @@ function addMessage(
     message.appendChild(
         bubble
     );
+
 
     chat.appendChild(
         message
@@ -442,27 +1096,42 @@ function addMessage(
 }
 
 
-/* ================================
-   MODELİ BAŞLAT
-================================ */
+/* =========================================
+   NEXUS BAŞLAT
+========================================= */
 
 async function startNexus(){
 
+    debug(
+        "================================"
+    );
+
+    debug(
+        "NEXUS-AI BAŞLATILIYOR"
+    );
+
+    debug(
+        "================================"
+    );
+
+
     try{
 
-        /*
-         * AŞAMA 1
-         */
+
+        /* ------------------------------
+           AŞAMA 1
+        ------------------------------ */
 
         setStatus(
-            "Hazırlanıyor...",
+            "Başlatılıyor...",
             "Nexus-AI başlatılıyor..."
         );
 
 
-        /*
-         * WebGPU kontrolü
-         */
+        debug(
+            "WebGPU kontrol ediliyor..."
+        );
+
 
         if(!navigator.gpu){
 
@@ -473,16 +1142,50 @@ async function startNexus(){
         }
 
 
-        /*
-         * AŞAMA 2
-         * MODEL İNDİRME / ÖNBELLEKTEN YÜKLEME
-         */
+        debug(
+            "WebGPU bulundu.",
+            "success"
+        );
+
+
+        /* ------------------------------
+           AŞAMA 2
+        ------------------------------ */
+
+        debug(
+            "Tarayıcı: " +
+            navigator.userAgent
+        );
+
+
+        debug(
+            "Model: " +
+            MODEL
+        );
+
+
+        /* ------------------------------
+           AŞAMA 3
+        ------------------------------ */
 
         setStatus(
             "Model hazırlanıyor...",
-            "Nexus AI modeli kontrol ediliyor..."
+            "AI modeli kontrol ediliyor..."
         );
 
+
+        debug(
+            "Transformers.js pipeline başlatılıyor..."
+        );
+
+
+        const startTime =
+            performance.now();
+
+
+        /* ------------------------------
+           AŞAMA 4
+        ------------------------------ */
 
         generator =
             await pipeline(
@@ -493,66 +1196,102 @@ async function startNexus(){
 
                 {
 
-                    dtype:"q4",
+                    dtype:
+                        "q4",
 
-                    device:"webgpu",
+                    device:
+                        "webgpu",
+
 
                     progress_callback:
-                        (progress)=>{
+                        progress => {
 
 
-                            /*
-                             * MODEL İNDİRİLİYOR
-                             */
+                            try{
 
-                            if(
-                                progress &&
-                                progress.status ===
-                                "progress"
-                            ){
 
-                                const value =
-                                    Number(
-                                        progress.progress || 0
+                                if(!progress){
+
+                                    debug(
+                                        "Progress verisi boş."
                                     );
 
+                                    return;
 
-                                const percent =
-                                    Math.round(
-                                        value
-                                    );
+                                }
 
 
-                                setStatus(
-
-                                    "Model %"
-                                    + percent,
-
-                                    "AI modeli indiriliyor: %"
-                                    + percent
-
+                                debug(
+                                    "MODEL: " +
+                                    JSON.stringify(
+                                        progress
+                                    )
                                 );
 
-                            }
+
+                                if(
+                                    progress.status ===
+                                    "progress"
+                                ){
+
+                                    const percent =
+                                        Math.round(
+                                            Number(
+                                                progress.progress ||
+                                                0
+                                            )
+                                        );
 
 
-                            /*
-                             * MODEL DOSYASI İNDİRİLDİ
-                             */
+                                    setStatus(
 
-                            if(
-                                progress &&
-                                (
+                                        "Model %" +
+                                        percent,
+
+                                        "AI modeli indiriliyor: %" +
+                                        percent
+
+                                    );
+
+                                }
+
+
+                                if(
                                     progress.status ===
                                     "done"
-                                )
-                            ){
+                                ){
 
-                                setStatus(
+                                    debug(
+                                        "Bir model dosyası tamamlandı.",
+                                        "success"
+                                    );
 
-                                    "Model indirildi",
+                                }
 
-                                    "Model indirildi. Nexus-AI başlatılıyor..."
+
+                                if(
+                                    progress.status ===
+                                    "ready"
+                                ){
+
+                                    debug(
+                                        "Model hazır sinyali alındı.",
+                                        "success"
+                                    );
+
+                                }
+
+
+                            }catch(error){
+
+                                debug(
+
+                                    "Progress hatası: " +
+                                    stringifyError(
+                                        error
+                                    ),
+
+                                    "error"
 
                                 );
 
@@ -560,13 +1299,66 @@ async function startNexus(){
 
                         }
 
+                }
+
             );
 
 
-        /*
-         * AŞAMA 3
-         * MODEL OBJE OLARAK HAZIR
-         */
+        /* ------------------------------
+           AŞAMA 5
+        ------------------------------ */
+
+        const elapsed =
+            Math.round(
+
+                (
+                    performance.now() -
+                    startTime
+
+                ) / 1000
+
+            );
+
+
+        debug(
+
+            "pipeline() tamamlandı."
+
+        );
+
+
+        debug(
+
+            "Toplam süre: " +
+            elapsed +
+            " saniye.",
+
+            "success"
+
+        );
+
+
+        setStatus(
+
+            "Model indirildi",
+
+            "Model başarıyla yüklendi. Nexus-AI başlatılıyor..."
+
+        );
+
+
+        debug(
+
+            "Model nesnesi başarıyla oluşturuldu.",
+
+            "success"
+
+        );
+
+
+        /* ------------------------------
+           AŞAMA 6
+        ------------------------------ */
 
         setStatus(
 
@@ -577,24 +1369,66 @@ async function startNexus(){
         );
 
 
-        /*
-         * KISA BİR BAŞLATMA PAYI
-         */
+        debug(
 
-        await new Promise(
-            resolve =>
-                setTimeout(
-                    resolve,
-                    800
-                )
+            "AI motoru başlatılıyor..."
+
         );
 
 
-        /*
-         * AI ARTIK HAZIR
-         */
+        /* ------------------------------
+           AŞAMA 7
+           GERÇEK TEST
+        ------------------------------ */
 
-        aiReady = true;
+        debug(
+
+            "AI motoru test ediliyor..."
+
+        );
+
+
+        const testResult =
+            await generator(
+
+                "Merhaba",
+
+                {
+
+                    max_new_tokens:
+                        8
+
+                }
+
+            );
+
+
+        debug(
+
+            "AI test sonucu:",
+
+            "success"
+
+        );
+
+
+        debug(
+
+            JSON.stringify(
+                testResult
+            ),
+
+            "success"
+
+        );
+
+
+        /* ------------------------------
+           AŞAMA 8
+        ------------------------------ */
+
+        aiReady =
+            true;
 
 
         setStatus(
@@ -611,29 +1445,120 @@ async function startNexus(){
         input.disabled =
             false;
 
-        send.disabled =
+
+        sendButton.disabled =
             false;
+
+
+        debug(
+
+            "================================",
+
+            "success"
+
+        );
+
+
+        debug(
+
+            "NEXUS-AI TAMAMEN HAZIR.",
+
+            "success"
+
+        );
+
+
+        debug(
+
+            "Kullanıcı mesajı bekleniyor.",
+
+            "success"
+
+        );
+
+
+        debug(
+
+            "================================",
+
+            "success"
+
+        );
+
 
         input.focus();
 
 
     }catch(error){
 
-        console.error(
-            "NEXUS MODEL HATASI:",
-            error
-        );
-
 
         aiReady =
             false;
+
+
+        const errorMessage =
+            stringifyError(
+                error
+            );
+
+
+        debug(
+
+            "================================",
+
+            "error"
+
+        );
+
+
+        debug(
+
+            "MODEL BAŞLATMA HATASI",
+
+            "error"
+
+        );
+
+
+        debug(
+
+            errorMessage,
+
+            "error"
+
+        );
+
+
+        try{
+
+            debug(
+
+                "Hata objesi: " +
+                JSON.stringify(
+                    error
+                ),
+
+                "error"
+
+            );
+
+        }catch{}
+
+
+        debug(
+
+            "================================",
+
+            "error"
+
+        );
 
 
         setStatus(
 
             "Başlatılamadı",
 
-            "Nexus-AI başlatılırken bir hata oluştu. Konsolu kontrol et."
+            "Nexus-AI başlatılamadı. Konsolu kontrol et."
 
         );
 
@@ -642,21 +1567,34 @@ async function startNexus(){
 }
 
 
-/* ================================
+/* =========================================
    AI CEVABI
-================================ */
+========================================= */
 
 async function askNexus(
     text
 ){
 
+    debug(
+        "Kullanıcı mesajı: " +
+        text
+    );
+
+
     messages.push({
 
-        role:"user",
+        role:
+            "user",
 
-        content:text
+        content:
+            text
 
     });
+
+
+    debug(
+        "AI cevap üretmeye başladı..."
+    );
 
 
     const output =
@@ -666,15 +1604,24 @@ async function askNexus(
 
             {
 
-                max_new_tokens:128,
+                max_new_tokens:
+                    128,
 
-                do_sample:true,
+                do_sample:
+                    true,
 
-                temperature:0.7
+                temperature:
+                    0.7
 
             }
 
         );
+
+
+    debug(
+        "AI cevap üretimi tamamlandı.",
+        "success"
+    );
 
 
     const generated =
@@ -698,7 +1645,8 @@ async function askNexus(
 
 
         answer =
-            last?.content || "";
+            last?.content ||
+            "";
 
     }
 
@@ -713,9 +1661,11 @@ async function askNexus(
 
     messages.push({
 
-        role:"assistant",
+        role:
+            "assistant",
 
-        content:answer
+        content:
+            answer
 
     });
 
@@ -725,9 +1675,9 @@ async function askNexus(
 }
 
 
-/* ================================
+/* =========================================
    MESAJ GÖNDER
-================================ */
+========================================= */
 
 async function sendMessage(){
 
@@ -754,15 +1704,17 @@ async function sendMessage(){
     input.value =
         "";
 
+
     input.style.height =
         "auto";
 
 
-    send.disabled =
+    sendButton.disabled =
         true;
 
 
     try{
+
 
         const answer =
             await askNexus(
@@ -778,15 +1730,22 @@ async function sendMessage(){
 
     }catch(error){
 
-        console.error(
-            "NEXUS CEVAP HATASI:",
-            error
+
+        debug(
+
+            "CEVAP HATASI: " +
+            stringifyError(
+                error
+            ),
+
+            "error"
+
         );
 
 
         addMessage(
 
-            "Nexus cevap üretirken bir hata oluştu.",
+            "Nexus cevap üretirken hata oluştu.",
 
             "ai"
 
@@ -795,33 +1754,38 @@ async function sendMessage(){
     }
 
 
-    send.disabled =
+    sendButton.disabled =
         false;
+
 
     input.focus();
 
 }
 
 
-/* ================================
-   BUTON
-================================ */
+/* =========================================
+   GÖNDER BUTONU
+========================================= */
 
-send.addEventListener(
+sendButton.addEventListener(
+
     "click",
+
     sendMessage
+
 );
 
 
-/* ================================
+/* =========================================
    ENTER
-================================ */
+========================================= */
 
 input.addEventListener(
 
     "keydown",
 
-    event=>{
+    event => {
+
 
         if(
 
@@ -845,23 +1809,28 @@ input.addEventListener(
 );
 
 
-/* ================================
+/* =========================================
    TEXTAREA
-================================ */
+========================================= */
 
 input.addEventListener(
 
     "input",
 
-    ()=>{
+    () => {
+
 
         input.style.height =
             "auto";
 
+
         input.style.height =
             Math.min(
+
                 input.scrollHeight,
+
                 120
+
             ) + "px";
 
     }
@@ -869,13 +1838,15 @@ input.addEventListener(
 );
 
 
-/* ================================
-   NEXUS BAŞLAT
-================================ */
+/* =========================================
+   BAŞLAT
+========================================= */
 
 startNexus();
 
+
 </script>
+
 
 </body>
 
