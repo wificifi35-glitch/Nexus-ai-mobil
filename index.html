@@ -77,7 +77,6 @@ textarea{
 .logo{
     display:flex;
     align-items:center;
-
     gap:10px;
 }
 
@@ -141,7 +140,6 @@ textarea{
 
 .chat{
     flex:1;
-
     min-height:0;
 
     overflow-y:auto;
@@ -189,12 +187,11 @@ textarea{
 
 .welcome h1{
     margin-top:18px;
-
     font-size:28px;
 }
 
 .welcome p{
-    max-width:330px;
+    max-width:340px;
 
     margin:
         9px auto 0;
@@ -510,7 +507,6 @@ textarea::placeholder{
 
 .consoleTime{
     color:#59657a;
-
     margin-right:6px;
 }
 
@@ -532,14 +528,12 @@ textarea::placeholder{
 
 
 /* =========================================
-   YÜKLEME NOKTALARI
+   LOADING
 ========================================= */
 
 .loading{
     display:flex;
-
     align-items:center;
-
     gap:5px;
 }
 
@@ -605,10 +599,6 @@ textarea::placeholder{
 <div class="app">
 
 
-<!-- =====================================
-     HEADER
-====================================== -->
-
 <header class="header">
 
     <div class="logo">
@@ -640,10 +630,6 @@ textarea::placeholder{
 </header>
 
 
-<!-- =====================================
-     CHAT
-====================================== -->
-
 <main
     class="chat"
     id="chat">
@@ -668,10 +654,6 @@ textarea::placeholder{
 
 </main>
 
-
-<!-- =====================================
-     INPUT
-====================================== -->
 
 <div class="inputArea">
 
@@ -702,10 +684,6 @@ textarea::placeholder{
 </div>
 
 
-<!-- =====================================
-     KONSOL BUTONU
-====================================== -->
-
 <button
     class="consoleToggle"
     id="consoleToggle">
@@ -714,10 +692,6 @@ textarea::placeholder{
 
 </button>
 
-
-<!-- =====================================
-     KONSOL
-====================================== -->
 
 <section
     class="consolePanel"
@@ -778,13 +752,16 @@ from
 
 
 /* =========================================
-   TRANSFORMERS CACHE
+   CACHE
 ========================================= */
 
 env.allowLocalModels =
     false;
 
 env.useBrowserCache =
+    true;
+
+env.useWasmCache =
     true;
 
 
@@ -862,7 +839,7 @@ const closeConsole =
 
 
 /* =========================================
-   AI DURUMU
+   DURUM
 ========================================= */
 
 let generator =
@@ -871,14 +848,67 @@ let generator =
 let aiReady =
     false;
 
+
+/*
+   Pipeline gerçekten oluşturuluyor mu?
+*/
+
 let loadingModel =
     false;
 
-let retryAfterBackground =
+
+/*
+   iPhone arka plana geçti mi?
+*/
+
+let wentBackground =
     false;
+
+
+/*
+   Arka plandan dönüş sonrası
+   yeniden deneme gerekiyor mu?
+*/
+
+let retryNeeded =
+    false;
+
+
+/*
+   Eski pipeline işleminin Promise'i.
+*/
+
+let currentLoadPromise =
+    null;
+
+
+/*
+   Her yükleme için benzersiz ID.
+
+   Eski işlem daha sonra dönüp
+   yeni işlemi bozamaz.
+*/
+
+let loadGeneration =
+    0;
+
+
+/*
+   Aynı yüzdeyi ikinci kez
+   göstermemek için.
+*/
 
 let lastProgressPercent =
     -1;
+
+
+/*
+   Aynı "done" mesajını
+   tekrar göstermemek için.
+*/
+
+const completedFiles =
+    new Set();
 
 
 /* =========================================
@@ -898,7 +928,7 @@ const messages = [
 
 
 /* =========================================
-   HATA
+   HATA METNİ
 ========================================= */
 
 function getErrorMessage(
@@ -911,6 +941,7 @@ function getErrorMessage(
 
     }
 
+
     if(
         typeof error ===
         "string"
@@ -920,11 +951,13 @@ function getErrorMessage(
 
     }
 
+
     if(error.message){
 
         return error.message;
 
     }
+
 
     try{
 
@@ -932,6 +965,7 @@ function getErrorMessage(
             JSON.stringify(
                 error
             );
+
 
         if(
             json &&
@@ -943,6 +977,7 @@ function getErrorMessage(
         }
 
     }catch{}
+
 
     return String(error);
 
@@ -1079,7 +1114,7 @@ function log(
 
 
 /* =========================================
-   KONSOL
+   KONSOL KONTROLLERİ
 ========================================= */
 
 consoleToggle.addEventListener(
@@ -1180,7 +1215,9 @@ function setStatus(
         statusDot.style.boxShadow =
             "0 0 10px #32d583";
 
-    }else{
+    }
+
+    else{
 
         statusDot.style.background =
             "#f0a500";
@@ -1313,21 +1350,8 @@ function removeLoading(){
 
 
 /* =========================================
-   TEKİL YÜZDE SİSTEMİ
+   TEKİL İLERLEME
 ========================================= */
-
-/*
-   Aynı yüzde tekrar gelirse hiçbir şey
-   yapmıyoruz.
-
-   Örnek:
-
-   %1
-   %2
-   %3
-
-   %3 tekrar gelirse atlanır.
-*/
 
 function updateProgress(
     progress
@@ -1368,7 +1392,7 @@ function updateProgress(
 
 
     /*
-       AYNI YÜZDEYİ ATLA
+       Aynı yüzdeyi tekrar gösterme.
     */
 
     if(
@@ -1382,7 +1406,7 @@ function updateProgress(
 
 
     /*
-       GERİYE DOĞRU GELEN YÜZDEYİ ATLA
+       Geriye düşen yüzdeyi gösterme.
     */
 
     if(
@@ -1399,6 +1423,31 @@ function updateProgress(
         percent;
 
 
+    if(
+        percent >=
+        100
+    ){
+
+        setStatus(
+
+            "Model dosyaları hazır",
+
+            "Model dosyaları tamamlandı. AI motoru hazırlanıyor..."
+
+        );
+
+
+        log(
+            "Model dosyaları %100 tamamlandı.",
+            "success"
+        );
+
+
+        return;
+
+    }
+
+
     setStatus(
 
         "Model %" +
@@ -1411,21 +1460,59 @@ function updateProgress(
 
 
     log(
-
         "Model %" +
-        percent,
-
-        percent === 100
-            ? "success"
-            : "info"
-
+        percent
     );
 
 }
 
 
 /* =========================================
-   ARKA PLAN / ÖN PLAN YÖNETİMİ
+   DOSYA TAMAMLANDI
+========================================= */
+
+function handleDone(
+    progress
+){
+
+    const file =
+        progress?.file;
+
+
+    if(!file){
+
+        return;
+
+    }
+
+
+    if(
+        completedFiles.has(
+            file
+        )
+    ){
+
+        return;
+
+    }
+
+
+    completedFiles.add(
+        file
+    );
+
+
+    log(
+        "Dosya hazır: " +
+        file,
+        "success"
+    );
+
+}
+
+
+/* =========================================
+   ARKA PLAN
 ========================================= */
 
 document.addEventListener(
@@ -1437,18 +1524,15 @@ document.addEventListener(
             "hidden"
         ){
 
-            log(
-                "Nexus arka plana geçti.",
-                "warn"
-            );
+            wentBackground =
+                true;
 
 
             if(
-                loadingModel &&
                 !aiReady
             ){
 
-                retryAfterBackground =
+                retryNeeded =
                     true;
 
 
@@ -1456,14 +1540,23 @@ document.addEventListener(
 
                     "Arka planda bekliyor",
 
-                    "Chrome tekrar açıldığında Nexus otomatik devam edecek."
+                    "Chrome arka planda. Geri döndüğünde Nexus devam edecek."
 
                 );
 
 
                 log(
 
-                    "Model yükleme arka planda askıya alınabilir. Nexus bekleme moduna geçti.",
+                    "Nexus arka plana geçti.",
+
+                    "warn"
+
+                );
+
+
+                log(
+
+                    "Aktif model işlemi iOS tarafından askıya alınabilir. Yeniden başlatılmayacak.",
 
                     "warn"
 
@@ -1471,10 +1564,19 @@ document.addEventListener(
 
             }
 
+            return;
+
         }
 
 
-        else{
+        /*
+           BURASI SADECE ÖN PLANA DÖNÜŞ.
+        */
+
+        if(
+            document.visibilityState ===
+            "visible"
+        ){
 
             log(
                 "Nexus tekrar ön plana geldi.",
@@ -1483,42 +1585,33 @@ document.addEventListener(
 
 
             if(
-                retryAfterBackground &&
+                retryNeeded &&
                 !aiReady
             ){
 
-                retryAfterBackground =
-                    false;
-
-
                 log(
+                    "Arka plan dönüşü algılandı."
+                );
 
-                    "Model işlemi yeniden kontrol ediliyor..."
+
+                setStatus(
+
+                    "Devam ediliyor...",
+
+                    "Önceki model işleminin kapanması bekleniyor..."
 
                 );
 
 
                 /*
-                   Kısa bekleme.
-                   Tarayıcının tamamen
-                   aktif olmasını bekliyoruz.
+                   HEMEN YENİ PIPELINE
+                   BAŞLATMIYORUZ.
+
+                   Eski Promise varsa onun
+                   bitmesini bekleyeceğiz.
                 */
 
-                setTimeout(
-                    () => {
-
-                        if(
-                            !aiReady &&
-                            !loadingModel
-                        ){
-
-                            startNexus();
-
-                        }
-
-                    },
-                    300
-                );
+                waitForOldLoadThenRetry();
 
             }
 
@@ -1529,27 +1622,156 @@ document.addEventListener(
 
 
 /* =========================================
+   ESKİ İŞLEMİ BEKLE
+========================================= */
+
+function waitForOldLoadThenRetry(){
+
+    /*
+       Zaten AI hazırsa hiçbir şey yapma.
+    */
+
+    if(
+        aiReady
+    ){
+
+        retryNeeded =
+            false;
+
+        return;
+
+    }
+
+
+    /*
+       Hâlâ aktif bir pipeline varsa
+       ona dokunma.
+    */
+
+    if(
+        loadingModel
+    ){
+
+        log(
+            "Eski model işlemi hâlâ çalışıyor. Yeni işlem başlatılmayacak.",
+            "warn"
+        );
+
+
+        /*
+           Kontrolü biraz sonra tekrar yap.
+        */
+
+        setTimeout(
+            () => {
+
+                waitForOldLoadThenRetry();
+
+            },
+            1500
+        );
+
+
+        return;
+
+    }
+
+
+    /*
+       Eski işlem artık kapanmış.
+       Şimdi yeni nesil başlatılabilir.
+    */
+
+    log(
+        "Eski model işlemi kapandı."
+    );
+
+
+    setTimeout(
+        () => {
+
+            if(
+                document.visibilityState !==
+                "visible"
+            ){
+
+                return;
+
+            }
+
+
+            if(
+                aiReady ||
+                loadingModel
+            ){
+
+                return;
+
+            }
+
+
+            retryNeeded =
+                false;
+
+
+            log(
+                "Model yeniden başlatılıyor...",
+                "success"
+            );
+
+
+            startNexus();
+
+        },
+        800
+    );
+
+}
+
+
+/* =========================================
    NEXUS BAŞLAT
 ========================================= */
 
 async function startNexus(){
 
     /*
-       Aynı anda iki pipeline oluşturma.
+       Çift başlatmayı engelle.
     */
 
     if(
-        loadingModel ||
-        aiReady
+        loadingModel
     ){
 
         log(
-            "Nexus zaten çalışıyor."
+            "Yeni başlatma isteği reddedildi: mevcut model işlemi devam ediyor.",
+            "warn"
         );
 
         return;
 
     }
+
+
+    if(
+        aiReady
+    ){
+
+        log(
+            "Nexus zaten hazır."
+        );
+
+        return;
+
+    }
+
+
+    /*
+       Yeni işlem nesli.
+    */
+
+    const myGeneration =
+        ++loadGeneration;
 
 
     loadingModel =
@@ -1560,14 +1782,25 @@ async function startNexus(){
         -1;
 
 
+    completedFiles.clear();
+
+
     log(
         "================================"
     );
+
 
     log(
         "NEXUS-AI BAŞLATILIYOR",
         "success"
     );
+
+
+    log(
+        "Yükleme nesli: " +
+        myGeneration
+    );
+
 
     log(
         "================================"
@@ -1582,8 +1815,11 @@ async function startNexus(){
         ================================= */
 
         setStatus(
+
             "Başlatılıyor...",
+
             "WebGPU kontrol ediliyor..."
+
         );
 
 
@@ -1626,18 +1862,27 @@ async function startNexus(){
 
 
         log(
-            "Tarayıcı modeli önbelleği aktif.",
+            "Tarayıcı model cache'i aktif.",
+            "success"
+        );
+
+
+        log(
+            "WASM cache aktif.",
             "success"
         );
 
 
         /* =================================
-           MODEL
+           MODEL PIPELINE
         ================================= */
 
         setStatus(
+
             "Model hazırlanıyor...",
+
             "Nexus AI modeli kontrol ediliyor..."
+
         );
 
 
@@ -1650,8 +1895,16 @@ async function startNexus(){
             performance.now();
 
 
-        generator =
-            await pipeline(
+        /*
+           Pipeline Promise'ini kaydediyoruz.
+
+           Böylece arka plandan döndüğümüzde
+           eski işlem bitmeden ikinci bir
+           pipeline oluşturulmuyor.
+        */
+
+        const loadPromise =
+            pipeline(
 
                 "text-generation",
 
@@ -1670,14 +1923,28 @@ async function startNexus(){
                         progress => {
 
                             /*
-                               Chrome aktif değilse
-                               progress güncellemesi
-                               kullanıcıya gösterilmiyor.
+                               Eski neslin callback'i
+                               yeni nesle dokunmasın.
                             */
 
                             if(
-                                document.visibilityState ===
-                                "hidden"
+                                myGeneration !==
+                                loadGeneration
+                            ){
+
+                                return;
+
+                            }
+
+
+                            /*
+                               Arka plandayken
+                               UI güncelleme.
+                            */
+
+                            if(
+                                document.visibilityState !==
+                                "visible"
                             ){
 
                                 return;
@@ -1686,8 +1953,21 @@ async function startNexus(){
 
 
                             if(
-                                progress &&
-                                progress.status ===
+                                progress?.status ===
+                                "progress_total"
+                            ){
+
+                                updateProgress(
+                                    progress
+                                );
+
+                                return;
+
+                            }
+
+
+                            if(
+                                progress?.status ===
                                 "progress"
                             ){
 
@@ -1695,17 +1975,32 @@ async function startNexus(){
                                     progress
                                 );
 
+                                return;
+
                             }
 
 
                             if(
-                                progress &&
-                                progress.status ===
+                                progress?.status ===
                                 "done"
                             ){
 
+                                handleDone(
+                                    progress
+                                );
+
+                                return;
+
+                            }
+
+
+                            if(
+                                progress?.status ===
+                                "ready"
+                            ){
+
                                 log(
-                                    "Model dosyası tamamlandı.",
+                                    "Transformers.js modeli hazır.",
                                     "success"
                                 );
 
@@ -1716,6 +2011,49 @@ async function startNexus(){
                 }
 
             );
+
+
+        currentLoadPromise =
+            loadPromise;
+
+
+        /*
+           PIPELINE'IN GERÇEK TAMAMLANMASINI
+           BEKLİYORUZ.
+        */
+
+        generator =
+            await loadPromise;
+
+
+        /*
+           Bu işlem eski bir işlemse
+           sonucu kullanma.
+        */
+
+        if(
+            myGeneration !==
+            loadGeneration
+        ){
+
+            log(
+                "Eski yükleme sonucu yok sayıldı.",
+                "warn"
+            );
+
+            return;
+
+        }
+
+
+        currentLoadPromise =
+            null;
+
+
+        log(
+            "Pipeline tamamlandı.",
+            "success"
+        );
 
 
         const seconds =
@@ -1731,12 +2069,6 @@ async function startNexus(){
 
 
         log(
-            "Pipeline tamamlandı.",
-            "success"
-        );
-
-
-        log(
             "Pipeline süresi: " +
             seconds +
             " saniye.",
@@ -1745,39 +2077,70 @@ async function startNexus(){
 
 
         /* =================================
-           MODEL HAZIR
+           MOTOR HAZIRLANIYOR
         ================================= */
 
         setStatus(
-            "Model yüklendi",
-            "Model hazır. Nexus-AI başlatılıyor..."
+
+            "AI motoru hazırlanıyor...",
+
+            "Model hazır. WebGPU motoru başlatılıyor..."
+
         );
 
 
         log(
-            "Model nesnesi başarıyla oluşturuldu.",
+            "AI motoru hazırlanıyor...",
             "success"
         );
 
 
+        /*
+           iPhone arka plana girdiyse
+           test yapmıyoruz.
+        */
+
+        if(
+            document.visibilityState !==
+            "visible"
+        ){
+
+            retryNeeded =
+                true;
+
+
+            loadingModel =
+                false;
+
+
+            setStatus(
+
+                "Arka planda bekliyor",
+
+                "Chrome tekrar açıldığında AI testi yapılacak."
+
+            );
+
+
+            log(
+                "Model hazır ancak Chrome arka planda. AI testi ertelendi.",
+                "warn"
+            );
+
+
+            return;
+
+        }
+
+
         /* =================================
-           AI MOTORU
+           AI TEST
         ================================= */
 
-        setStatus(
-            "Nexus başlatılıyor...",
-            "AI motoru başlatılıyor..."
-        );
-
-
         log(
-            "AI motoru başlatılıyor..."
+            "AI motoru test ediliyor..."
         );
 
-
-        /*
-           Gerçek çalışma testi.
-        */
 
         const test =
             await generator(
@@ -1792,20 +2155,24 @@ async function startNexus(){
             );
 
 
-        log(
-            "AI motoru test edildi.",
-            "success"
-        );
+        if(
+            myGeneration !==
+            loadGeneration
+        ){
+
+            return;
+
+        }
 
 
         log(
-            "Test sonucu alındı.",
+            "AI motoru test cevabı alındı.",
             "success"
         );
 
 
         /* =================================
-           HAZIR
+           TAMAMEN HAZIR
         ================================= */
 
         aiReady =
@@ -1816,14 +2183,22 @@ async function startNexus(){
             false;
 
 
-        retryAfterBackground =
+        retryNeeded =
+            false;
+
+
+        wentBackground =
             false;
 
 
         setStatus(
+
             "Yerel AI • GPU",
+
             "Hazırım. Bana bir şey sor.",
+
             true
+
         );
 
 
@@ -1848,7 +2223,13 @@ async function startNexus(){
 
 
         log(
-            "Kullanıcı mesajı bekleniyor.",
+            "GPU: WebGPU",
+            "success"
+        );
+
+
+        log(
+            "Model: Qwen2.5-0.5B-Instruct",
             "success"
         );
 
@@ -1862,47 +2243,31 @@ async function startNexus(){
         input.focus();
 
 
-    }catch(error){
+    }
 
-        loadingModel =
-            false;
-
+    catch(error){
 
         /*
-           Kullanıcı Chrome'u arka plana aldıysa
-           bunu gerçek hata olarak göstermiyoruz.
+           Bu işlem artık aktif değilse
+           sonucu yok say.
         */
 
         if(
-            document.visibilityState ===
-            "hidden"
+            myGeneration !==
+            loadGeneration
         ){
-
-            retryAfterBackground =
-                true;
-
-
-            setStatus(
-
-                "Arka planda bekliyor",
-
-                "Chrome tekrar açıldığında Nexus devam edecek."
-
-            );
-
-
-            log(
-
-                "Tarayıcı arka plandayken işlem kesildi/askıya alındı.",
-
-                "warn"
-
-            );
-
 
             return;
 
         }
+
+
+        currentLoadPromise =
+            null;
+
+
+        loadingModel =
+            false;
 
 
         const message =
@@ -1910,6 +2275,64 @@ async function startNexus(){
                 error
             );
 
+
+        /*
+           ARKA PLAN KESİNTİSİ
+        */
+
+        if(
+            wentBackground ||
+            retryNeeded
+        ){
+
+            retryNeeded =
+                true;
+
+
+            setStatus(
+
+                "Beklemede",
+
+                "Model işlemi kesildi. Chrome aktif olduğunda güvenli şekilde yeniden denenecek."
+
+            );
+
+
+            log(
+
+                "Arka plan nedeniyle model işlemi tamamlanamadı: " +
+                message,
+
+                "warn"
+
+            );
+
+
+            log(
+
+                "Bu durum gerçek Nexus hatası olarak gösterilmiyor.",
+
+                "warn"
+
+            );
+
+
+            /*
+               BURADA startNexus()
+               ÇAĞIRMIYORUZ.
+
+               Chrome'un görünür olmasını
+               bekliyoruz.
+            */
+
+            return;
+
+        }
+
+
+        /* =================================
+           GERÇEK HATA
+        ================================= */
 
         log(
             "================================",
@@ -1939,7 +2362,9 @@ async function startNexus(){
                 "error"
             );
 
-        }catch{}
+        }
+
+        catch{}
 
 
         log(
@@ -1952,7 +2377,7 @@ async function startNexus(){
 
             "Başlatılamadı",
 
-            "Nexus-AI başlatılamadı. Konsolu açıp hatayı kontrol et."
+            "Nexus-AI başlatılamadı. Konsolu kontrol et."
 
         );
 
@@ -2126,8 +2551,9 @@ async function sendMessage(){
             "ai"
         );
 
+    }
 
-    }catch(error){
+    catch(error){
 
         removeLoading();
 
@@ -2165,7 +2591,7 @@ async function sendMessage(){
 
 
 /* =========================================
-   GÖNDER BUTONU
+   BUTON
 ========================================= */
 
 sendButton.addEventListener(
