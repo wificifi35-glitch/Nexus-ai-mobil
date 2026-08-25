@@ -77,6 +77,7 @@ textarea{
 .logo{
     display:flex;
     align-items:center;
+
     gap:10px;
 }
 
@@ -123,9 +124,9 @@ textarea{
     width:8px;
     height:8px;
 
-    flex-shrink:0;
-
     border-radius:50%;
+
+    flex-shrink:0;
 
     background:#f0a500;
 
@@ -187,11 +188,12 @@ textarea{
 
 .welcome h1{
     margin-top:18px;
+
     font-size:28px;
 }
 
 .welcome p{
-    max-width:340px;
+    max-width:350px;
 
     margin:
         9px auto 0;
@@ -403,7 +405,7 @@ textarea::placeholder{
     right:7px;
     bottom:7px;
 
-    height:60dvh;
+    height:62dvh;
 
     z-index:1000;
 
@@ -452,6 +454,7 @@ textarea::placeholder{
 
 .consoleActions{
     display:flex;
+
     gap:6px;
 }
 
@@ -507,6 +510,7 @@ textarea::placeholder{
 
 .consoleTime{
     color:#59657a;
+
     margin-right:6px;
 }
 
@@ -526,6 +530,11 @@ textarea::placeholder{
     color:#f0c674;
 }
 
+.consoleStage{
+    color:#75a7ff;
+    font-weight:600;
+}
+
 
 /* =========================================
    LOADING
@@ -533,7 +542,9 @@ textarea::placeholder{
 
 .loading{
     display:flex;
+
     align-items:center;
+
     gap:5px;
 }
 
@@ -583,7 +594,7 @@ textarea::placeholder{
     }
 
     .consolePanel{
-        height:62dvh;
+        height:64dvh;
     }
 
 }
@@ -774,6 +785,20 @@ const MODEL =
 
 
 /* =========================================
+   STORAGE ANAHTARLARI
+========================================= */
+
+const LOG_STORAGE =
+    "nexus_console_history_v3";
+
+const STATE_STORAGE =
+    "nexus_runtime_state_v3";
+
+const SESSION_STORAGE =
+    "nexus_session_v3";
+
+
+/* =========================================
    ELEMENTLER
 ========================================= */
 
@@ -839,7 +864,7 @@ const closeConsole =
 
 
 /* =========================================
-   DURUM
+   DURUM DEĞİŞKENLERİ
 ========================================= */
 
 let generator =
@@ -848,67 +873,31 @@ let generator =
 let aiReady =
     false;
 
-
-/*
-   Pipeline gerçekten oluşturuluyor mu?
-*/
-
 let loadingModel =
     false;
 
+let currentStage =
+    "BAŞLANGIÇ";
 
-/*
-   iPhone arka plana geçti mi?
-*/
-
-let wentBackground =
-    false;
-
-
-/*
-   Arka plandan dönüş sonrası
-   yeniden deneme gerekiyor mu?
-*/
-
-let retryNeeded =
-    false;
-
-
-/*
-   Eski pipeline işleminin Promise'i.
-*/
-
-let currentLoadPromise =
-    null;
-
-
-/*
-   Her yükleme için benzersiz ID.
-
-   Eski işlem daha sonra dönüp
-   yeni işlemi bozamaz.
-*/
-
-let loadGeneration =
+let currentProgress =
     0;
 
+let sessionId =
+    crypto.randomUUID
+        ? crypto.randomUUID()
+        : Date.now().toString();
 
-/*
-   Aynı yüzdeyi ikinci kez
-   göstermemek için.
-*/
+let heartbeatTimer =
+    null;
 
 let lastProgressPercent =
     -1;
 
+let lastDoneFile =
+    "";
 
-/*
-   Aynı "done" mesajını
-   tekrar göstermemek için.
-*/
-
-const completedFiles =
-    new Set();
+let lastPersistedStage =
+    "";
 
 
 /* =========================================
@@ -941,7 +930,6 @@ function getErrorMessage(
 
     }
 
-
     if(
         typeof error ===
         "string"
@@ -951,13 +939,11 @@ function getErrorMessage(
 
     }
 
-
     if(error.message){
 
         return error.message;
 
     }
-
 
     try{
 
@@ -965,7 +951,6 @@ function getErrorMessage(
             JSON.stringify(
                 error
             );
-
 
         if(
             json &&
@@ -977,7 +962,6 @@ function getErrorMessage(
         }
 
     }catch{}
-
 
     return String(error);
 
@@ -1023,18 +1007,104 @@ function escapeHTML(
 
 
 /* =========================================
-   KONSOL
+   KALICI KONSOL
 ========================================= */
 
-function log(
+function readStoredLogs(){
+
+    try{
+
+        const raw =
+            localStorage.getItem(
+                LOG_STORAGE
+            );
+
+        if(!raw){
+
+            return [];
+
+        }
+
+        const data =
+            JSON.parse(
+                raw
+            );
+
+        return Array.isArray(data)
+            ? data
+            : [];
+
+    }catch{
+
+        return [];
+
+    }
+
+}
+
+
+function saveStoredLog(
     message,
-    type="info"
+    type
 ){
 
-    const time =
-        new Date()
-        .toLocaleTimeString();
+    try{
 
+        const logs =
+            readStoredLogs();
+
+
+        logs.push({
+
+            time:
+                new Date()
+                .toLocaleTimeString(),
+
+            message:
+                String(message),
+
+            type:
+                type
+
+        });
+
+
+        /*
+           Çok büyümesini engelle.
+        */
+
+        while(
+            logs.length >
+            250
+        ){
+
+            logs.shift();
+
+        }
+
+
+        localStorage.setItem(
+
+            LOG_STORAGE,
+
+            JSON.stringify(
+                logs
+            )
+
+        );
+
+    }catch{}
+
+}
+
+
+/* =========================================
+   KONSOL EKRANA YAZ
+========================================= */
+
+function renderConsoleLine(
+    item
+){
 
     const line =
         document.createElement(
@@ -1047,7 +1117,7 @@ function log(
 
 
     if(
-        type ===
+        item.type ===
         "success"
     ){
 
@@ -1058,7 +1128,7 @@ function log(
 
 
     if(
-        type ===
+        item.type ===
         "error"
     ){
 
@@ -1069,12 +1139,23 @@ function log(
 
 
     if(
-        type ===
+        item.type ===
         "warn"
     ){
 
         className =
             "consoleWarn";
+
+    }
+
+
+    if(
+        item.type ===
+        "stage"
+    ){
+
+        className =
+            "consoleStage";
 
     }
 
@@ -1086,11 +1167,11 @@ function log(
     line.innerHTML = `
 
         <span class="consoleTime">
-            ${time}
+            ${escapeHTML(item.time)}
         </span>
 
         <span class="${className}">
-            ${escapeHTML(message)}
+            ${escapeHTML(item.message)}
         </span>
 
     `;
@@ -1100,9 +1181,55 @@ function log(
         line
     );
 
+}
+
+
+/* =========================================
+   KONSOL LOG
+========================================= */
+
+function log(
+    message,
+    type="info",
+    persist=true
+){
+
+    const time =
+        new Date()
+        .toLocaleTimeString();
+
+
+    const item = {
+
+        time:
+            time,
+
+        message:
+            String(message),
+
+        type:
+            type
+
+    };
+
+
+    renderConsoleLine(
+        item
+    );
+
 
     consoleBody.scrollTop =
         consoleBody.scrollHeight;
+
+
+    if(persist){
+
+        saveStoredLog(
+            message,
+            type
+        );
+
+    }
 
 
     console.log(
@@ -1114,84 +1241,249 @@ function log(
 
 
 /* =========================================
-   KONSOL KONTROLLERİ
+   ESKİ KONSOLU YÜKLE
 ========================================= */
 
-consoleToggle.addEventListener(
-    "click",
-    () => {
+function restoreConsole(){
 
-        consolePanel.classList.toggle(
-            "open"
+    const logs =
+        readStoredLogs();
+
+
+    if(!logs.length){
+
+        return;
+
+    }
+
+
+    const separator =
+        document.createElement(
+            "div"
+        );
+
+
+    separator.className =
+        "consoleLine";
+
+
+    separator.innerHTML = `
+
+        <span class="consoleStage">
+            ───── ÖNCEKİ KONSOL KAYITLARI ─────
+        </span>
+
+    `;
+
+
+    consoleBody.appendChild(
+        separator
+    );
+
+
+    for(
+        const item of logs
+    ){
+
+        renderConsoleLine(
+            item
         );
 
     }
-);
 
 
-closeConsole.addEventListener(
-    "click",
-    () => {
-
-        consolePanel.classList.remove(
-            "open"
+    const separator2 =
+        document.createElement(
+            "div"
         );
 
-    }
-);
+
+    separator2.className =
+        "consoleLine";
 
 
-clearConsole.addEventListener(
-    "click",
-    () => {
+    separator2.innerHTML = `
 
-        consoleBody.innerHTML =
-            "";
+        <span class="consoleStage">
+            ───── YENİ OTURUM ─────
+        </span>
 
-        log(
-            "Konsol temizlendi."
-        );
+    `;
 
-    }
-);
+
+    consoleBody.appendChild(
+        separator2
+    );
+
+
+    consoleBody.scrollTop =
+        consoleBody.scrollHeight;
+
+}
 
 
 /* =========================================
-   GLOBAL HATALAR
+   RUNTIME STATE
 ========================================= */
 
-window.addEventListener(
-    "error",
-    event => {
+function saveRuntimeState(){
 
-        log(
-            "JavaScript hatası: " +
-            event.message,
-            "error"
+    try{
+
+        localStorage.setItem(
+
+            STATE_STORAGE,
+
+            JSON.stringify({
+
+                sessionId:
+                    sessionId,
+
+                timestamp:
+                    Date.now(),
+
+                stage:
+                    currentStage,
+
+                progress:
+                    currentProgress,
+
+                aiReady:
+                    aiReady,
+
+                loading:
+                    loadingModel
+
+            })
+
         );
 
-    }
-);
+    }catch{}
+
+}
 
 
-window.addEventListener(
-    "unhandledrejection",
-    event => {
+function getPreviousState(){
 
-        log(
-            "Promise hatası: " +
-            getErrorMessage(
-                event.reason
-            ),
-            "error"
+    try{
+
+        const raw =
+            localStorage.getItem(
+                STATE_STORAGE
+            );
+
+        if(!raw){
+
+            return null;
+
+        }
+
+        return JSON.parse(
+            raw
         );
 
+    }catch{
+
+        return null;
+
     }
-);
+
+}
 
 
 /* =========================================
-   DURUM
+   HEARTBEAT
+========================================= */
+
+function startHeartbeat(){
+
+    saveRuntimeState();
+
+
+    if(
+        heartbeatTimer
+    ){
+
+        clearInterval(
+            heartbeatTimer
+        );
+
+    }
+
+
+    heartbeatTimer =
+        setInterval(
+
+            () => {
+
+                saveRuntimeState();
+
+            },
+
+            1000
+
+        );
+
+}
+
+
+/* =========================================
+   AŞAMA DEĞİŞTİR
+========================================= */
+
+function setStage(
+    stage,
+    title,
+    description,
+    type="stage"
+){
+
+    currentStage =
+        stage;
+
+
+    saveRuntimeState();
+
+
+    setStatus(
+        title,
+        description,
+        false
+    );
+
+
+    /*
+       Aynı aşamayı tekrar tekrar
+       yazma.
+    */
+
+    if(
+        stage ===
+        lastPersistedStage
+    ){
+
+        return;
+
+    }
+
+
+    lastPersistedStage =
+        stage;
+
+
+    log(
+        "AŞAMA → " +
+        stage +
+        " | " +
+        description,
+        type
+    );
+
+}
+
+
+/* =========================================
+   DURUM GÖRSELİ
 ========================================= */
 
 function setStatus(
@@ -1202,6 +1494,7 @@ function setStatus(
 
     statusText.textContent =
         title;
+
 
     welcomeText.textContent =
         description;
@@ -1215,15 +1508,469 @@ function setStatus(
         statusDot.style.boxShadow =
             "0 0 10px #32d583";
 
-    }
-
-    else{
+    }else{
 
         statusDot.style.background =
             "#f0a500";
 
         statusDot.style.boxShadow =
             "0 0 10px #f0a500";
+
+    }
+
+}
+
+
+/* =========================================
+   ÖNCEKİ OTURUMU KONTROL ET
+========================================= */
+
+function checkPreviousSession(){
+
+    const previous =
+        getPreviousState();
+
+
+    if(!previous){
+
+        log(
+            "Önceki Nexus oturumu bulunamadı."
+        );
+
+        return;
+
+    }
+
+
+    const age =
+        Date.now() -
+        Number(
+            previous.timestamp || 0
+        );
+
+
+    /*
+       10 dakikadan eski state'i
+       aktif kesinti kabul etmiyoruz.
+    */
+
+    if(
+        age >
+        10 * 60 * 1000
+    ){
+
+        log(
+            "Eski Nexus oturum kaydı bulundu ancak çok eski.",
+            "info"
+        );
+
+        return;
+
+    }
+
+
+    if(
+        previous.sessionId ===
+        sessionId
+    ){
+
+        return;
+
+    }
+
+
+    log(
+        "ÖNCEKİ OTURUM BULUNDU.",
+        "warn"
+    );
+
+
+    log(
+        "Önceki aşama: " +
+        (
+            previous.stage ||
+            "Bilinmiyor"
+        ),
+        "warn"
+    );
+
+
+    log(
+        "Önceki ilerleme: %" +
+        (
+            previous.progress ||
+            0
+        ),
+        "warn"
+    );
+
+
+    if(
+        previous.loading
+    ){
+
+        log(
+
+            "Önceki oturum model yükleme sırasında kesilmiş olabilir.",
+
+            "warn"
+
+        );
+
+    }
+
+
+    log(
+
+        "Yeni Nexus oturumu başlatılıyor.",
+
+        "stage"
+
+    );
+
+}
+
+
+/* =========================================
+   GLOBAL HATALAR
+========================================= */
+
+window.addEventListener(
+    "error",
+    event => {
+
+        log(
+
+            "GLOBAL JAVASCRIPT HATASI: " +
+            event.message,
+
+            "error"
+
+        );
+
+    }
+);
+
+
+window.addEventListener(
+    "unhandledrejection",
+    event => {
+
+        log(
+
+            "GLOBAL PROMISE HATASI: " +
+            getErrorMessage(
+                event.reason
+            ),
+
+            "error"
+
+        );
+
+    }
+);
+
+
+/* =========================================
+   SAYFA GÖRÜNÜRLÜĞÜ
+========================================= */
+
+document.addEventListener(
+    "visibilitychange",
+    () => {
+
+        if(
+            document.visibilityState ===
+            "hidden"
+        ){
+
+            saveRuntimeState();
+
+
+            log(
+
+                "SAYFA ARKA PLANA GEÇTİ.",
+
+                "warn"
+
+            );
+
+
+            log(
+
+                "Chrome/iOS Nexus JavaScript ve WebGPU işlemlerini askıya alabilir.",
+
+                "warn"
+
+            );
+
+
+            log(
+
+                "Mevcut aşama: " +
+                currentStage,
+
+                "warn"
+
+            );
+
+
+            log(
+
+                "Mevcut ilerleme: %" +
+                currentProgress,
+
+                "warn"
+
+            );
+
+
+            return;
+
+        }
+
+
+        if(
+            document.visibilityState ===
+            "visible"
+        ){
+
+            log(
+
+                "SAYFA TEKRAR ÖN PLANA GELDİ.",
+
+                "success"
+
+            );
+
+
+            log(
+
+                "Nexus mevcut durumu kontrol ediyor...",
+
+                "stage"
+
+            );
+
+
+            saveRuntimeState();
+
+        }
+
+    }
+);
+
+
+/* =========================================
+   PAGEHIDE
+========================================= */
+
+window.addEventListener(
+    "pagehide",
+    () => {
+
+        saveRuntimeState();
+
+
+        /*
+           Bu kayıt sayfa gerçekten
+           kapanırken/yönlenirken kalır.
+        */
+
+        saveStoredLog(
+
+            "SAYFA PAGEHIDE OLAYI ALDI. Son aşama: " +
+            currentStage,
+
+            "warn"
+
+        );
+
+    }
+);
+
+
+/* =========================================
+   PROGRESS
+========================================= */
+
+function updateProgress(
+    progress
+){
+
+    if(!progress){
+
+        return;
+
+    }
+
+
+    const raw =
+        Number(
+            progress.progress
+        );
+
+
+    if(
+        !Number.isFinite(
+            raw
+        )
+    ){
+
+        return;
+
+    }
+
+
+    const percent =
+        Math.max(
+            0,
+            Math.min(
+                100,
+                Math.floor(raw)
+            )
+        );
+
+
+    currentProgress =
+        percent;
+
+
+    saveRuntimeState();
+
+
+    /*
+       Aynı yüzdeyi tekrar gösterme.
+    */
+
+    if(
+        percent ===
+        lastProgressPercent
+    ){
+
+        return;
+
+    }
+
+
+    /*
+       Geri giden yüzdeyi gösterme.
+    */
+
+    if(
+        percent <
+        lastProgressPercent
+    ){
+
+        return;
+
+    }
+
+
+    lastProgressPercent =
+        percent;
+
+
+    if(
+        percent >=
+        100
+    ){
+
+        setStage(
+
+            "MODEL_DOSYALARI_HAZIR",
+
+            "Model dosyaları hazır",
+
+            "Model %100 tamamlandı. Şimdi AI motoru hazırlanacak.",
+
+            "success"
+
+        );
+
+
+        return;
+
+    }
+
+
+    setStatus(
+
+        "Model %" +
+        percent,
+
+        "AI modeli indiriliyor: %" +
+        percent
+
+    );
+
+
+    log(
+
+        "MODEL İLERLEMESİ → %" +
+        percent,
+
+        "info"
+
+    );
+
+}
+
+
+/* =========================================
+   DOSYA TAMAMLANDI
+========================================= */
+
+function handleDone(
+    progress
+){
+
+    const file =
+        progress?.file ||
+        progress?.name ||
+        "";
+
+
+    /*
+       Aynı dosyanın done kaydını
+       tekrar yazma.
+    */
+
+    if(
+        file &&
+        file ===
+        lastDoneFile
+    ){
+
+        return;
+
+    }
+
+
+    lastDoneFile =
+        file;
+
+
+    if(file){
+
+        log(
+
+            "MODEL DOSYASI HAZIR → " +
+            file,
+
+            "success"
+
+        );
+
+    }else{
+
+        log(
+
+            "Bir model dosyası hazır.",
+
+            "success"
+
+        );
 
     }
 
@@ -1350,383 +2097,52 @@ function removeLoading(){
 
 
 /* =========================================
-   TEKİL İLERLEME
+   KONSOL BUTONLARI
 ========================================= */
 
-function updateProgress(
-    progress
-){
-
-    if(!progress){
-
-        return;
-
-    }
-
-
-    const raw =
-        Number(
-            progress.progress
-        );
-
-
-    if(
-        !Number.isFinite(
-            raw
-        )
-    ){
-
-        return;
-
-    }
-
-
-    const percent =
-        Math.max(
-            0,
-            Math.min(
-                100,
-                Math.floor(raw)
-            )
-        );
-
-
-    /*
-       Aynı yüzdeyi tekrar gösterme.
-    */
-
-    if(
-        percent ===
-        lastProgressPercent
-    ){
-
-        return;
-
-    }
-
-
-    /*
-       Geriye düşen yüzdeyi gösterme.
-    */
-
-    if(
-        percent <
-        lastProgressPercent
-    ){
-
-        return;
-
-    }
-
-
-    lastProgressPercent =
-        percent;
-
-
-    if(
-        percent >=
-        100
-    ){
-
-        setStatus(
-
-            "Model dosyaları hazır",
-
-            "Model dosyaları tamamlandı. AI motoru hazırlanıyor..."
-
-        );
-
-
-        log(
-            "Model dosyaları %100 tamamlandı.",
-            "success"
-        );
-
-
-        return;
-
-    }
-
-
-    setStatus(
-
-        "Model %" +
-        percent,
-
-        "AI modeli hazırlanıyor: %" +
-        percent
-
-    );
-
-
-    log(
-        "Model %" +
-        percent
-    );
-
-}
-
-
-/* =========================================
-   DOSYA TAMAMLANDI
-========================================= */
-
-function handleDone(
-    progress
-){
-
-    const file =
-        progress?.file;
-
-
-    if(!file){
-
-        return;
-
-    }
-
-
-    if(
-        completedFiles.has(
-            file
-        )
-    ){
-
-        return;
-
-    }
-
-
-    completedFiles.add(
-        file
-    );
-
-
-    log(
-        "Dosya hazır: " +
-        file,
-        "success"
-    );
-
-}
-
-
-/* =========================================
-   ARKA PLAN
-========================================= */
-
-document.addEventListener(
-    "visibilitychange",
+consoleToggle.addEventListener(
+    "click",
     () => {
 
-        if(
-            document.visibilityState ===
-            "hidden"
-        ){
-
-            wentBackground =
-                true;
-
-
-            if(
-                !aiReady
-            ){
-
-                retryNeeded =
-                    true;
-
-
-                setStatus(
-
-                    "Arka planda bekliyor",
-
-                    "Chrome arka planda. Geri döndüğünde Nexus devam edecek."
-
-                );
-
-
-                log(
-
-                    "Nexus arka plana geçti.",
-
-                    "warn"
-
-                );
-
-
-                log(
-
-                    "Aktif model işlemi iOS tarafından askıya alınabilir. Yeniden başlatılmayacak.",
-
-                    "warn"
-
-                );
-
-            }
-
-            return;
-
-        }
-
-
-        /*
-           BURASI SADECE ÖN PLANA DÖNÜŞ.
-        */
-
-        if(
-            document.visibilityState ===
-            "visible"
-        ){
-
-            log(
-                "Nexus tekrar ön plana geldi.",
-                "success"
-            );
-
-
-            if(
-                retryNeeded &&
-                !aiReady
-            ){
-
-                log(
-                    "Arka plan dönüşü algılandı."
-                );
-
-
-                setStatus(
-
-                    "Devam ediliyor...",
-
-                    "Önceki model işleminin kapanması bekleniyor..."
-
-                );
-
-
-                /*
-                   HEMEN YENİ PIPELINE
-                   BAŞLATMIYORUZ.
-
-                   Eski Promise varsa onun
-                   bitmesini bekleyeceğiz.
-                */
-
-                waitForOldLoadThenRetry();
-
-            }
-
-        }
+        consolePanel.classList.toggle(
+            "open"
+        );
 
     }
 );
 
 
-/* =========================================
-   ESKİ İŞLEMİ BEKLE
-========================================= */
+closeConsole.addEventListener(
+    "click",
+    () => {
 
-function waitForOldLoadThenRetry(){
-
-    /*
-       Zaten AI hazırsa hiçbir şey yapma.
-    */
-
-    if(
-        aiReady
-    ){
-
-        retryNeeded =
-            false;
-
-        return;
+        consolePanel.classList.remove(
+            "open"
+        );
 
     }
+);
 
 
-    /*
-       Hâlâ aktif bir pipeline varsa
-       ona dokunma.
-    */
+clearConsole.addEventListener(
+    "click",
+    () => {
 
-    if(
-        loadingModel
-    ){
+        consoleBody.innerHTML =
+            "";
+
+        localStorage.removeItem(
+            LOG_STORAGE
+        );
+
 
         log(
-            "Eski model işlemi hâlâ çalışıyor. Yeni işlem başlatılmayacak.",
-            "warn"
+            "Konsol geçmişi temizlendi.",
+            "success"
         );
-
-
-        /*
-           Kontrolü biraz sonra tekrar yap.
-        */
-
-        setTimeout(
-            () => {
-
-                waitForOldLoadThenRetry();
-
-            },
-            1500
-        );
-
-
-        return;
 
     }
-
-
-    /*
-       Eski işlem artık kapanmış.
-       Şimdi yeni nesil başlatılabilir.
-    */
-
-    log(
-        "Eski model işlemi kapandı."
-    );
-
-
-    setTimeout(
-        () => {
-
-            if(
-                document.visibilityState !==
-                "visible"
-            ){
-
-                return;
-
-            }
-
-
-            if(
-                aiReady ||
-                loadingModel
-            ){
-
-                return;
-
-            }
-
-
-            retryNeeded =
-                false;
-
-
-            log(
-                "Model yeniden başlatılıyor...",
-                "success"
-            );
-
-
-            startNexus();
-
-        },
-        800
-    );
-
-}
+);
 
 
 /* =========================================
@@ -1735,17 +2151,16 @@ function waitForOldLoadThenRetry(){
 
 async function startNexus(){
 
-    /*
-       Çift başlatmayı engelle.
-    */
-
     if(
         loadingModel
     ){
 
         log(
-            "Yeni başlatma isteği reddedildi: mevcut model işlemi devam ediyor.",
+
+            "Zaten bir model yükleme işlemi çalışıyor.",
+
             "warn"
+
         );
 
         return;
@@ -1766,65 +2181,76 @@ async function startNexus(){
     }
 
 
-    /*
-       Yeni işlem nesli.
-    */
-
-    const myGeneration =
-        ++loadGeneration;
-
-
     loadingModel =
         true;
+
+
+    currentProgress =
+        0;
 
 
     lastProgressPercent =
         -1;
 
 
-    completedFiles.clear();
+    lastDoneFile =
+        "";
+
+
+    lastPersistedStage =
+        "";
+
+
+    saveRuntimeState();
 
 
     log(
-        "================================"
+        "================================",
+        "stage"
     );
 
 
     log(
-        "NEXUS-AI BAŞLATILIYOR",
+        "NEXUS-AI YENİ OTURUM BAŞLATIYOR",
         "success"
     );
 
 
     log(
-        "Yükleme nesli: " +
-        myGeneration
+        "Oturum ID: " +
+        sessionId,
+        "info"
     );
 
 
     log(
-        "================================"
+        "Model: " +
+        MODEL,
+        "info"
+    );
+
+
+    log(
+        "================================",
+        "stage"
     );
 
 
     try{
 
 
-        /* =================================
-           WEBGPU
-        ================================= */
+        /* ===============================
+           AŞAMA 1
+        =============================== */
 
-        setStatus(
+        setStage(
 
-            "Başlatılıyor...",
+            "WEBGPU_KONTROL",
 
-            "WebGPU kontrol ediliyor..."
+            "WebGPU kontrol ediliyor",
 
-        );
+            "Cihazın GPU hızlandırması kontrol ediliyor."
 
-
-        log(
-            "WebGPU kontrol ediliyor..."
         );
 
 
@@ -1833,61 +2259,108 @@ async function startNexus(){
         ){
 
             throw new Error(
-                "WebGPU bu tarayıcıda desteklenmiyor."
+
+                "Bu tarayıcıda WebGPU bulunamadı."
+
             );
 
         }
 
 
         log(
-            "WebGPU bulundu.",
+            "WebGPU API bulundu.",
             "success"
         );
 
 
-        /* =================================
-           ORTAM
-        ================================= */
+        /* ===============================
+           AŞAMA 2
+        =============================== */
+
+        setStage(
+
+            "ORTAM_KONTROL",
+
+            "Ortam kontrol ediliyor",
+
+            "HTTPS ve tarayıcı cache sistemi kontrol ediliyor."
+
+        );
+
 
         log(
+
             "Protokol: " +
-            location.protocol
-        );
+            location.protocol,
 
-
-        log(
-            "Model: " +
-            MODEL
-        );
-
-
-        log(
-            "Tarayıcı model cache'i aktif.",
-            "success"
-        );
-
-
-        log(
-            "WASM cache aktif.",
-            "success"
-        );
-
-
-        /* =================================
-           MODEL PIPELINE
-        ================================= */
-
-        setStatus(
-
-            "Model hazırlanıyor...",
-
-            "Nexus AI modeli kontrol ediliyor..."
+            "info"
 
         );
 
 
         log(
-            "Transformers.js pipeline başlatılıyor..."
+
+            "Tarayıcı: " +
+            navigator.userAgent,
+
+            "info"
+
+        );
+
+
+        log(
+
+            "Browser Cache: " +
+            (
+                env.useBrowserCache
+                    ? "AKTİF"
+                    : "PASİF"
+            ),
+
+            env.useBrowserCache
+                ? "success"
+                : "warn"
+
+        );
+
+
+        log(
+
+            "WASM Cache: " +
+            (
+                env.useWasmCache
+                    ? "AKTİF"
+                    : "PASİF"
+            ),
+
+            env.useWasmCache
+                ? "success"
+                : "warn"
+
+        );
+
+
+        /* ===============================
+           AŞAMA 3
+        =============================== */
+
+        setStage(
+
+            "MODEL_YUKLEME",
+
+            "Model hazırlanıyor",
+
+            "Model dosyaları kontrol ediliyor ve gerekiyorsa indiriliyor."
+
+        );
+
+
+        log(
+
+            "Transformers.js pipeline başlatılıyor.",
+
+            "info"
+
         );
 
 
@@ -1896,15 +2369,11 @@ async function startNexus(){
 
 
         /*
-           Pipeline Promise'ini kaydediyoruz.
-
-           Böylece arka plandan döndüğümüzde
-           eski işlem bitmeden ikinci bir
-           pipeline oluşturulmuyor.
+           Pipeline başlıyor.
         */
 
-        const loadPromise =
-            pipeline(
+        generator =
+            await pipeline(
 
                 "text-generation",
 
@@ -1922,14 +2391,8 @@ async function startNexus(){
                     progress_callback:
                         progress => {
 
-                            /*
-                               Eski neslin callback'i
-                               yeni nesle dokunmasın.
-                            */
-
                             if(
-                                myGeneration !==
-                                loadGeneration
+                                !progress
                             ){
 
                                 return;
@@ -1938,22 +2401,11 @@ async function startNexus(){
 
 
                             /*
-                               Arka plandayken
-                               UI güncelleme.
+                               TOPLAM İLERLEME
                             */
 
                             if(
-                                document.visibilityState !==
-                                "visible"
-                            ){
-
-                                return;
-
-                            }
-
-
-                            if(
-                                progress?.status ===
+                                progress.status ===
                                 "progress_total"
                             ){
 
@@ -1966,8 +2418,12 @@ async function startNexus(){
                             }
 
 
+                            /*
+                               DOSYA İLERLEMESİ
+                            */
+
                             if(
-                                progress?.status ===
+                                progress.status ===
                                 "progress"
                             ){
 
@@ -1980,8 +2436,12 @@ async function startNexus(){
                             }
 
 
+                            /*
+                               DOSYA TAMAMLANDI
+                            */
+
                             if(
-                                progress?.status ===
+                                progress.status ===
                                 "done"
                             ){
 
@@ -1994,14 +2454,25 @@ async function startNexus(){
                             }
 
 
+                            /*
+                               MODEL READY
+                            */
+
                             if(
-                                progress?.status ===
+                                progress.status ===
                                 "ready"
                             ){
 
-                                log(
-                                    "Transformers.js modeli hazır.",
+                                setStage(
+
+                                    "MODEL_RUNTIME_HAZIR",
+
+                                    "Model motoru hazır",
+
+                                    "Transformers.js model bileşenleri hazır.",
+
                                     "success"
+
                                 );
 
                             }
@@ -2013,50 +2484,24 @@ async function startNexus(){
             );
 
 
-        currentLoadPromise =
-            loadPromise;
+        /* ===============================
+           AŞAMA 4
+        =============================== */
 
+        setStage(
 
-        /*
-           PIPELINE'IN GERÇEK TAMAMLANMASINI
-           BEKLİYORUZ.
-        */
+            "PIPELINE_TAMAMLANDI",
 
-        generator =
-            await loadPromise;
+            "Pipeline hazır",
 
+            "Model pipeline tamamen oluşturuldu.",
 
-        /*
-           Bu işlem eski bir işlemse
-           sonucu kullanma.
-        */
-
-        if(
-            myGeneration !==
-            loadGeneration
-        ){
-
-            log(
-                "Eski yükleme sonucu yok sayıldı.",
-                "warn"
-            );
-
-            return;
-
-        }
-
-
-        currentLoadPromise =
-            null;
-
-
-        log(
-            "Pipeline tamamlandı.",
             "success"
+
         );
 
 
-        const seconds =
+        const elapsed =
             Math.round(
 
                 (
@@ -2069,76 +2514,52 @@ async function startNexus(){
 
 
         log(
-            "Pipeline süresi: " +
-            seconds +
+
+            "Pipeline oluşturma süresi: " +
+            elapsed +
             " saniye.",
+
             "success"
+
         );
 
 
-        /* =================================
-           MOTOR HAZIRLANIYOR
-        ================================= */
+        /* ===============================
+           AŞAMA 5
+        =============================== */
 
-        setStatus(
+        setStage(
 
-            "AI motoru hazırlanıyor...",
+            "WEBGPU_AI_HAZIRLIK",
 
-            "Model hazır. WebGPU motoru başlatılıyor..."
+            "AI motoru hazırlanıyor",
+
+            "WebGPU üzerinde ilk AI çalışma testi hazırlanıyor."
 
         );
 
 
         log(
-            "AI motoru hazırlanıyor...",
-            "success"
+
+            "İlk AI test isteği hazırlanıyor.",
+
+            "info"
+
         );
 
 
-        /*
-           iPhone arka plana girdiyse
-           test yapmıyoruz.
-        */
+        /* ===============================
+           AŞAMA 6
+        =============================== */
 
-        if(
-            document.visibilityState !==
-            "visible"
-        ){
+        setStage(
 
-            retryNeeded =
-                true;
+            "AI_TEST",
 
+            "AI test ediliyor",
 
-            loadingModel =
-                false;
+            "Nexus ilk yerel AI cevabını üretmeyi deniyor."
 
-
-            setStatus(
-
-                "Arka planda bekliyor",
-
-                "Chrome tekrar açıldığında AI testi yapılacak."
-
-            );
-
-
-            log(
-                "Model hazır ancak Chrome arka planda. AI testi ertelendi.",
-                "warn"
-            );
-
-
-            return;
-
-        }
-
-
-        /* =================================
-           AI TEST
-        ================================= */
-
-        log(
-            "AI motoru test ediliyor..."
         );
 
 
@@ -2148,32 +2569,49 @@ async function startNexus(){
                 "Merhaba",
 
                 {
+
                     max_new_tokens:
                         8
+
                 }
 
             );
 
 
-        if(
-            myGeneration !==
-            loadGeneration
-        ){
-
-            return;
-
-        }
-
-
         log(
-            "AI motoru test cevabı alındı.",
+
+            "İlk AI test isteği başarıyla tamamlandı.",
+
             "success"
+
         );
 
 
-        /* =================================
-           TAMAMEN HAZIR
-        ================================= */
+        log(
+
+            "Test çıktısı alındı.",
+
+            "success"
+
+        );
+
+
+        /* ===============================
+           AŞAMA 7
+        =============================== */
+
+        setStage(
+
+            "NEXUS_HAZIR",
+
+            "Yerel AI • GPU",
+
+            "Nexus-AI hazır. Bana bir şey sor.",
+
+            "success"
+
+        );
+
 
         aiReady =
             true;
@@ -2183,23 +2621,7 @@ async function startNexus(){
             false;
 
 
-        retryNeeded =
-            false;
-
-
-        wentBackground =
-            false;
-
-
-        setStatus(
-
-            "Yerel AI • GPU",
-
-            "Hazırım. Bana bir şey sor.",
-
-            true
-
-        );
+        saveRuntimeState();
 
 
         input.disabled =
@@ -2217,20 +2639,30 @@ async function startNexus(){
 
 
         log(
+
             "NEXUS-AI TAMAMEN HAZIR.",
+
             "success"
+
         );
 
 
         log(
+
             "GPU: WebGPU",
+
             "success"
+
         );
 
 
         log(
-            "Model: Qwen2.5-0.5B-Instruct",
+
+            "Model: " +
+            MODEL,
+
             "success"
+
         );
 
 
@@ -2242,32 +2674,16 @@ async function startNexus(){
 
         input.focus();
 
-
     }
+
 
     catch(error){
 
-        /*
-           Bu işlem artık aktif değilse
-           sonucu yok say.
-        */
-
-        if(
-            myGeneration !==
-            loadGeneration
-        ){
-
-            return;
-
-        }
-
-
-        currentLoadPromise =
-            null;
-
-
         loadingModel =
             false;
+
+
+        saveRuntimeState();
 
 
         const message =
@@ -2277,62 +2693,22 @@ async function startNexus(){
 
 
         /*
-           ARKA PLAN KESİNTİSİ
+           Burada otomatik sonsuz
+           yeniden başlatma YOK.
         */
 
-        if(
-            wentBackground ||
-            retryNeeded
-        ){
+        setStage(
 
-            retryNeeded =
-                true;
+            "HATA",
 
+            "Model yüklenemedi",
 
-            setStatus(
+            "Nexus bir aşamada durdu. Konsoldaki son aşamaya bak.",
 
-                "Beklemede",
+            "error"
 
-                "Model işlemi kesildi. Chrome aktif olduğunda güvenli şekilde yeniden denenecek."
+        );
 
-            );
-
-
-            log(
-
-                "Arka plan nedeniyle model işlemi tamamlanamadı: " +
-                message,
-
-                "warn"
-
-            );
-
-
-            log(
-
-                "Bu durum gerçek Nexus hatası olarak gösterilmiyor.",
-
-                "warn"
-
-            );
-
-
-            /*
-               BURADA startNexus()
-               ÇAĞIRMIYORUZ.
-
-               Chrome'un görünür olmasını
-               bekliyoruz.
-            */
-
-            return;
-
-        }
-
-
-        /* =================================
-           GERÇEK HATA
-        ================================= */
 
         log(
             "================================",
@@ -2341,13 +2717,28 @@ async function startNexus(){
 
 
         log(
-            "MODEL BAŞLATMA HATASI",
+            "NEXUS MODEL HATASI",
             "error"
         );
 
 
         log(
+            "Hata: " +
             message,
+            "error"
+        );
+
+
+        log(
+            "Hata aşaması: " +
+            currentStage,
+            "error"
+        );
+
+
+        log(
+            "Son ilerleme: %" +
+            currentProgress,
             "error"
         );
 
@@ -2355,30 +2746,22 @@ async function startNexus(){
         try{
 
             log(
+
                 "Hata objesi: " +
                 JSON.stringify(
                     error
                 ),
+
                 "error"
+
             );
 
-        }
-
-        catch{}
+        }catch{}
 
 
         log(
             "================================",
             "error"
-        );
-
-
-        setStatus(
-
-            "Başlatılamadı",
-
-            "Nexus-AI başlatılamadı. Konsolu kontrol et."
-
         );
 
     }
@@ -2395,8 +2778,7 @@ async function askNexus(
 ){
 
     log(
-        "Kullanıcı: " +
-        text
+        "Kullanıcı mesajı alındı."
     );
 
 
@@ -2411,8 +2793,19 @@ async function askNexus(
     });
 
 
+    setStatus(
+
+        "Cevap hazırlanıyor...",
+
+        "Nexus düşünüyor...",
+
+        true
+
+    );
+
+
     log(
-        "AI cevap üretiyor..."
+        "AI cevap üretimi başladı."
     );
 
 
@@ -2481,6 +2874,17 @@ async function askNexus(
             answer
 
     });
+
+
+    setStatus(
+
+        "Yerel AI • GPU",
+
+        "Hazırım. Bana bir şey sor.",
+
+        true
+
+    );
 
 
     log(
@@ -2552,6 +2956,7 @@ async function sendMessage(){
         );
 
     }
+
 
     catch(error){
 
@@ -2650,8 +3055,27 @@ input.addEventListener(
 
 
 /* =========================================
-   BAŞLAT
+   BAŞLANGIÇ
 ========================================= */
+
+restoreConsole();
+
+checkPreviousSession();
+
+startHeartbeat();
+
+
+log(
+    "NEXUS YENİ SAYFA OTURUMU BAŞLADI.",
+    "success"
+);
+
+
+log(
+    "Oturum ID: " +
+    sessionId
+);
+
 
 startNexus();
 
